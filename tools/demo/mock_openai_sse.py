@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """本地 OpenAI 兼容 SSE mock，用于演示与回归：不联网、不需要真实 Key。
 
-用法: python3 tools/demo/mock_openai_sse.py [port]
+用法: python3 tools/demo/mock_openai_sse.py [port] [token_delay_seconds]
+  token_delay_seconds 默认 0.05；录演示时调大（如 0.45）才能看清逐 token 生长。
 端点:
   GET  /v1/models
   POST /v1/chat/completions   (stream=true 时逐 token 下发 SSE)
@@ -10,6 +11,7 @@ import json, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8787
+TOKEN_DELAY = float(sys.argv[2]) if len(sys.argv) > 2 else 0.05
 
 REPLY = [
     "你好，", "我是 NeoChat。", "\n\n这篇是**双端原生**的 BYOK 客户端：",
@@ -62,7 +64,7 @@ class H(BaseHTTPRequestHandler):
         for i, tok in enumerate(REPLY):
             emit({"id": "chatcmpl-mock", "object": "chat.completion.chunk", "model": model,
                   "choices": [{"index": 0, "delta": {"content": tok}, "finish_reason": None}]})
-            time.sleep(0.05)
+            time.sleep(TOKEN_DELAY)
         emit({"id": "chatcmpl-mock", "object": "chat.completion.chunk", "model": model,
               "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
               "usage": {"prompt_tokens": 42, "completion_tokens": len(REPLY), "total_tokens": 42 + len(REPLY)}})
