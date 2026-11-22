@@ -79,7 +79,7 @@ M0 任务单全部在 [docs/M0-TASKS.md](docs/M0-TASKS.md)。**无任务已下�
 
 ## 5. 阻塞与未决
 
-见 [docs/DECISIONS_NEEDED.md](docs/DECISIONS_NEEDED.md)。D1（三角，B 默认生效）、D2/D3/D4/D7（人类已裁决）、D5（仓库，已首推）均已解除。**当前只剩 D6（许可证白名单，按默认方案生效）**。
+见 [docs/DECISIONS_NEEDED.md](docs/DECISIONS_NEEDED.md)。D1（三角，B 默认生效）、D2/D3/D4/D7（人类已裁决）、D5（仓库，已首推）均已解除。**D6 已由 2026-11-22 人类指令关闭**：项目以 AGPL-3.0 开源，白名单按 `docs/security/LICENSE-POLICY.md` 重定（见 ADR-004）。
 
 另：人类 2026-11-22 指定**全部工作在本机完成，不使用云端机器**——crew thread 与子代理都必须在 device 上跑。
 

@@ -1,0 +1,27 @@
+build:
+  maxIssues: 0
+
+complexity:
+  CyclomaticComplexMethod:
+    threshold: 15
+  LongMethod:
+    threshold: 60
+  TooManyFunctions:
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+  LongParameterList:
+    functionThreshold: 6
+    constructorThreshold: 8
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 120
+  ReturnCount:
+    max: 3
+  ForbiddenComment:
+    active: false
+
+formatting:
+  active: false

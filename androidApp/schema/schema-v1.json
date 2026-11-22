@@ -1,0 +1,1713 @@
+{
+  "format": "neochat-schema-snapshot/1",
+  "tables": {
+    "agent_profile": {
+      "columns": {
+        "avatar_ref": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "context_policy_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "default_model_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "greeting": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "mcp_server_ids_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "memory_scope": {
+          "default": "'agent'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sampling_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sort_order": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "system_prompt": {
+          "default": "''",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "tool_allow_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "app_setting": {
+      "columns": {
+        "key": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "value_json": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "attachment": {
+      "columns": {
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "extracted_text": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "kind": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "local_path": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "mime": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "page_count": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "ref_count": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "sha256": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "size_bytes": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "conversation": {
+      "columns": {
+        "active_leaf_message_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "agent_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "archived": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "folder_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "last_message_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "message_count": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "pinned": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "settings_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "title": {
+          "default": "''",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "title_auto": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "conversation_tag": {
+      "columns": {
+        "conversation_id": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "tag_id": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": "TEXT"
+        }
+      }
+    },
+    "folder": {
+      "columns": {
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "parent_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sort_order": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "mcp_server": {
+      "columns": {
+        "args_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "command": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "enabled": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "env_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "headers_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "last_check_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "last_check_ok": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "transport": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "url": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "mcp_tool": {
+      "columns": {
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "danger_level": {
+          "default": "'safe'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "description": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "enabled": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "input_schema_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "server_id": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "memory_item": {
+      "columns": {
+        "agent_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "content": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "keywords": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "pinned": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "scope": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "source_conversation_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "source_message_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "message": {
+      "columns": {
+        "conversation_id": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "error_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "finish_reason": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "model_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "parent_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "provider_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "role": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sibling_index": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "status": {
+          "default": "'complete'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "truncated": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "message_attachment": {
+      "columns": {
+        "attachment_id": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "message_id": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "part_index": {
+          "default": "0",
+          "notnull": true,
+          "pk": true,
+          "type": "INTEGER"
+        },
+        "role_hint": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "message_fts": {
+      "columns": {
+        "conversation_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "message_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "part_index": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "text": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        }
+      }
+    },
+    "message_fts_config": {
+      "columns": {
+        "k": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": ""
+        },
+        "v": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        }
+      }
+    },
+    "message_fts_content": {
+      "columns": {
+        "c0": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "c1": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "c2": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "c3": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "message_fts_data": {
+      "columns": {
+        "block": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "BLOB"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "message_fts_docsize": {
+      "columns": {
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "INTEGER"
+        },
+        "sz": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "BLOB"
+        }
+      }
+    },
+    "message_fts_idx": {
+      "columns": {
+        "pgno": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": ""
+        },
+        "segid": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": ""
+        },
+        "term": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": ""
+        }
+      }
+    },
+    "message_part": {
+      "columns": {
+        "body": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "kind": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "message_id": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "meta_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "part_index": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "truncated": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "migration": {
+      "columns": {
+        "applied_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "checksum": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "INTEGER"
+        },
+        "integrity_ok": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "snapshot_path": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "model": {
+      "columns": {
+        "context_window": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "currency": {
+          "default": "'USD'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "display_name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "extra_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "is_custom": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "max_output": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "max_tokens_param": {
+          "default": "'max_tokens'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "model_key": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "pinned_by_user": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "price_cache_read": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "price_cache_write": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "price_input": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "price_output": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "provider_id": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "supports_cache": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "supports_json_schema": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "supports_thinking": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "supports_tools": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "supports_vision": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "thinking_budget_max": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "prompt_template": {
+      "columns": {
+        "body": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "category": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sort_order": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "title": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "variables_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "provider": {
+      "columns": {
+        "base_url": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "billing_url": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "concurrency_limit": {
+          "default": "4",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "connect_timeout_ms": {
+          "default": "10000",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "cumulative_stream": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "extra_body_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "extra_headers_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "extra_query_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "first_byte_timeout_ms": {
+          "default": "60000",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "max_retries": {
+          "default": "2",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "org_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "origin_device": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "pass_through": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "protocol": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "proxy_mode": {
+          "default": "'system'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "proxy_url": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "read_idle_timeout_ms": {
+          "default": "180000",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sort_order": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "status_url": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "sync_version": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "total_timeout_ms": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "provider_key": {
+      "columns": {
+        "cooldown_until": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "daily_request_limit": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "deleted_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "enabled": {
+          "default": "1",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "failure_count": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "health_score": {
+          "default": "1.0",
+          "notnull": true,
+          "pk": false,
+          "type": "REAL"
+        },
+        "hint_head": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "hint_tail": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "key_ref": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "label": {
+          "default": "''",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "last_used_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "provider_id": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "rpm_limit": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "tpm_limit": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "updated_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    },
+    "schema_meta": {
+      "columns": {
+        "key": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "value": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "tag": {
+      "columns": {
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "tombstone": {
+      "columns": {
+        "deleted_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "entity": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "entity_id": {
+          "default": null,
+          "notnull": true,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "rev": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "tool_call_record": {
+      "columns": {
+        "args_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "call_index": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "error_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "finished_at": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "message_id": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "name": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "result_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "started_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "status": {
+          "default": "'running'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        }
+      }
+    },
+    "usage_record": {
+      "columns": {
+        "cached_tokens": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "conversation_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "cost_estimate": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "created_at": {
+          "default": null,
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "currency": {
+          "default": "'USD'",
+          "notnull": true,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "error_bound_pct": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "id": {
+          "default": null,
+          "notnull": false,
+          "pk": true,
+          "type": "TEXT"
+        },
+        "input_tokens": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "is_estimate": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "message_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "model_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "output_tokens": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        },
+        "price_snapshot_json": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "provider_cost": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "REAL"
+        },
+        "provider_id": {
+          "default": null,
+          "notnull": false,
+          "pk": false,
+          "type": "TEXT"
+        },
+        "reasoning_tokens": {
+          "default": "0",
+          "notnull": true,
+          "pk": false,
+          "type": "INTEGER"
+        }
+      }
+    }
+  }
+}

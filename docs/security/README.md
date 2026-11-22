@@ -15,8 +15,10 @@
 
 M0：扫描器（M0-QE-004）与 SBOM（M0-QE-005）尚未实现。**在此之前不得宣称任何"密钥安全"结论。**
 
-## 许可证白名单（待 D6 确认）
+## 许可证白名单（2026-11-22 起，AGPL-3 项目）
 
-允许：MIT、Apache-2.0、BSD-2/3-Clause、ISC、MPL-2.0、Unlicense、Zlib。
-禁止：GPL-2.0/3.0、AGPL、LGPL、SSPL、CC-BY-NC 及任何"仅非商业"条款。
-灰区（需人工评估 + 记 ADR）：EPL、CDDL、带广告条款的许可。
+见 `docs/security/LICENSE-POLICY.md` 与 `docs/decisions/ADR-004-license-agpl.md`。
+
+- 可直接用：MIT · Apache-2.0 · BSD-2/3-Clause · ISC · Zlib · Unlicense · MPL-2.0
+- 可用但保留声明：LGPL-3.0 · GPL-3.0 · GPL-2.0-or-later · AGPL-3.0
+- 禁止：**GPL-2.0-only**（与 AGPL-3 不兼容）· SSPL · BUSL · CC-BY-NC 类 · 无许可声明
