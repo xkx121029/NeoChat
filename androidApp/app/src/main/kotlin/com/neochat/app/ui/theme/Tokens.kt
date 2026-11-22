@@ -420,6 +420,12 @@ public object TypeScale {
 
     /** ST29 行式错误 `StreamRow.detail` 覆盖 height 1.45。 */
     public val noticeDetail: TypeToken = TypeToken(14, FontWeight.Normal, 1.45f)
+
+    /** T16 `mono` 等宽正文 13 / 1.55（代码块、公式、HTML 字面）。 */
+    public val mono: TypeToken = TypeToken(13, FontWeight.Normal, 1.55f)
+
+    /** T17 `monoSmall` 等宽小号 12 / 1.5（代码井语言标识、脚注来源）。 */
+    public val monoSmall: TypeToken = TypeToken(12, FontWeight.Normal, 1.5f)
 }
 
 /** §2 里没有归入间距阶梯、确实用到的尺寸与比例。 */
@@ -612,3 +618,89 @@ public object Metrics {
     /** 对话框内边距（R05 圆角外的常规块间）。 */
     public val dialogPadding: Dp = Space.xl
 }
+
+/** §1.3 语义色 · 代码井（M13–M17）：等宽/代码/公式字面一律铺在 `codeWellBg` 上。 */
+internal object LightCodeWell {
+    /** M13 `codeWellBg` 代码井底。 */
+    val bg: Color = Color(0xFFEDF0F6)
+
+    /** M14 `codeWellHeader` 井头（语言标识条）。 */
+    val header: Color = Color(0xFFE7EBF3)
+
+    /** M15 `codeWellFg` 井内前景。 */
+    val fg: Color = Color(0xFF1E232E)
+
+    /** M16 `codeWellBorder` 井描边。 */
+    val border: Color = Color(0xFFDBDEE5)
+
+    /** M17 `lineNumberFg`（井头语言标识用同一灰阶）。 */
+    val lineNumber: Color = Color(0xFF7D8088)
+}
+
+/** Markdown 正文的补充令牌：全部取自 DESIGN-SYSTEM 已有条目，未新增设计数值。 */
+internal object RenderTokens {
+    /** R01 `xs` 行内代码圆角 6〔`app/lib/ui/chat/render/markdown_body.dart`:177-178〕。 */
+    val inlineCodeRadius: Dp = 6.dp
+
+    /** R01 行内代码内边距 4 / 1〔同上〕。 */
+    val inlineCodePaddingH: Dp = 4.dp
+    val inlineCodePaddingV: Dp = 1.dp
+
+    /** R02 `sm` 代码井圆角 10〔§7「代码块」条，`markdown_body.dart`:194-196〕。 */
+    val codeWellRadius: Dp = 10.dp
+
+    /** 代码井内边距 12 / 10 / 14 / 10〔`markdown_body.dart`:194-196〕。 */
+    val codeWellPaddingStart: Dp = 12.dp
+    val codeWellPaddingTop: Dp = 10.dp
+    val codeWellPaddingEnd: Dp = 14.dp
+    val codeWellPaddingBottom: Dp = 10.dp
+
+    /** 表格 cell 内边距 12 / 8〔`markdown_body.dart`:227〕。 */
+    val tableCellPaddingH: Dp = 12.dp
+    val tableCellPaddingV: Dp = 8.dp
+
+    /** `hr` 竖向内边距 12〔`markdown_body.dart`:165〕。 */
+    val ruleMarginV: Dp = 12.dp
+
+    /**
+     * 块间距：§7 记「段落之间的间距由 Markdown 渲染库配置，未在源码找到」，
+     * 取间距阶梯 P02 `md` = 12 作为既有条目。
+     */
+    val blockGap: Dp = Space.md
+
+    /** 引用块左栏：宽取 B02 卡片描边 1，内容缩进取 P02 `md`。 */
+    val quoteBarWidth: Dp = 1.dp
+    val quoteIndent: Dp = Space.md
+
+    /** 列表标记列最小宽：取 P02 `md`（有序号 3 位的对齐下限）。 */
+    val listMarkerMinWidth: Dp = Space.md
+
+    /** 嵌套一层列表/脚注的额外缩进：P05 `inTurn` = 8。 */
+    val nestIndent: Dp = Space.sm
+
+    /** §5 代码块可见行数上限（超出折叠）。 */
+    const val codeVisibleLines: Int = 20_000
+}
+
+/** 代码井与公式字面用到的颜色角色（条目 ID 见 `LightCodeWell`）。 */
+public data class NeoChatCodeColors(
+    /** M13。 */
+    public val wellBg: Color,
+    /** M14。 */
+    public val wellHeader: Color,
+    /** M15。 */
+    public val wellFg: Color,
+    /** M16。 */
+    public val wellBorder: Color,
+    /** M17。 */
+    public val lineNumber: Color,
+)
+
+/** 亮色的代码井角色。 */
+public val NeoChatLightCodeColors: NeoChatCodeColors = NeoChatCodeColors(
+    wellBg = LightCodeWell.bg,
+    wellHeader = LightCodeWell.header,
+    wellFg = LightCodeWell.fg,
+    wellBorder = LightCodeWell.border,
+    lineNumber = LightCodeWell.lineNumber,
+)

@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import com.neochat.app.R
 import com.neochat.app.chat.ChatMessageUi
+import com.neochat.app.render.MarkdownBody
 import com.neochat.app.ui.theme.LocalNeoColors
 import com.neochat.app.ui.theme.Metrics
 import com.neochat.app.ui.theme.neoStyle
@@ -47,7 +48,7 @@ public fun AssistantMessage(
             )
         }
         when {
-            message.text.isNotEmpty() -> StreamingBody(
+            message.text.isNotEmpty() -> MarkdownBody(
                 text = message.text,
                 streaming = message.streaming,
                 modifier = Modifier.padding(top = Metrics.thinkingGap),
