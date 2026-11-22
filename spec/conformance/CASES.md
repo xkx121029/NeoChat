@@ -1,6 +1,6 @@
 # spec/conformance/CASES.md — conformance 用例集
 
-- 版本：**1.0.0**
+- 版本：**1.0.1**
 - 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 用例总数：**78**
@@ -12,8 +12,10 @@
 | 项 | 约定 |
 | --- | --- |
 | 样本存放 | `spec/conformance/samples/<CASE-ID>/` |
-| 样本形态 | `stream.sse`（原始 HTTP body 字节，未解压）+ `meta.json`（HTTP 状态、头、协议、config、终止原因）。`meta.json` 可选带 `content_encoding: "gzip"`，此时 `stream.sse` 为压缩字节，用于验收解压分支（FRAME-013） |
-| 切包脚本 | `meta.json` 的 `chunk_pattern`，语法：`whole`（不切，默认值）／`bytes:<n>`（每 n 字节一片）／`fixed:<n>`（同 bytes，保留别名）／`random:<seed>`（按 seed 生成 1..64 字节的随机片长）。缺失时 MUST 按 `whole` 处理 |
+| 样本形态（网络层） | `stream.sse`（原始 HTTP body 字节，未解压）+ `meta.json`（HTTP 状态、头、协议、config、终止原因）。`meta.json` 可选带 `content_encoding: "gzip"`，此时 `stream.sse` 为压缩字节，用于验收解压分支（FRAME-013） |
+| 切包脚本 | `meta.json` 的 `chunk_pattern`，语法：`whole`（不切，默认值）／`bytes:<n>`（每 n 字节一片）／`fixed:<n>`（同 bytes，保留别名）／`random:<seed>`（按 seed 生成 1..64 字节的随机片长）／`lines`（按行切，每片一行含行尾）。**节奏（片间延迟）不属于 chunk_pattern**，由用例的 `asserts.perf` 或人工观察处理。缺失时 MUST 按 `whole` 处理 |
+| 样本形态（渲染层） | `input.md` + `meta.json`（`layer:"render"`），可选 `append_steps.json`（逐步追加的片段数组，用于流式渲染用例） |
+| 样本形态（导入层） | `payload.json`（一份导出文件摘要）+ `meta.json`（`layer:"import"`） |
 | Runner 输入 | 样本目录 + 目标实现（android / windows） |
 | Runner 输出 | `events.jsonl`（StreamEvent 序列，键排序、无空白）+ `exit.json`（`{ok, case, error?}`） |
 | 判据 | (1) 双端 `events.jsonl` 的 SHA-256 相同；(2) 与 `expected.jsonl` 相同（若提供）；(3) `meta.json` 的 `expect_error` 命中 |

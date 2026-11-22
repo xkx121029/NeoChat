@@ -1,6 +1,6 @@
 # spec/errors.md — 统一错误模型
 
-- 版本：**1.0.1**
+- 版本：**1.0.2**
 - 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：双端协议层、传输层、状态层、错误页、诊断页、崩溃兜底
@@ -63,7 +63,7 @@
 | `params` | 必填（可为空对象）；文案插值用 |
 | `causes` | 必填，1~3 条，按可能性降序。key 形式，渲染为文本 |
 | `actions` | 必填，≥1 条。见 §4。UI MUST 全部可点 |
-| `raw` | 可选；脱敏后截断 ≤512 **字节**（按 UTF-8 边界截断，不切坏多字节字符），且 MUST NOT 含 Authorization/Cookie/API Key |
+| `raw` | 可选；**参与字节比对**（同一输入 + 同一脱敏管线 = 同一输出，它是确定性的，不需要从比对中剔除）；脱敏后截断 ≤512 **字节**（按 UTF-8 边界截断，不切坏多字节字符），且 MUST NOT 含 Authorization/Cookie/API Key |
 | `request_id` | 可选；provider 返回的请求 id（OpenAI `x-request-id`、Anthropic `request-id`），用于向 provider 报障 |
 | `trace_id` | 必填；本地 UUIDv7，用于关联本地 trace 文件。**非确定性字段**：MUST NOT 参与 conformance 字节比对（runner 比对前剔除，见 `CASES.md` §0） |
 
@@ -243,7 +243,7 @@
 | `Cookie` 头 | `[redacted]` |
 | `Set-Cookie` | `[redacted]` |
 | 邮箱（用户可能把邮箱当组织 ID） | 保留首字符 + `***` + 域名 |
-| 本地绝对路径中的用户名 | 替换为 `~` |
+| 本地绝对路径中的用户名 | 把 home 前缀整体替换为 `~`：`/home/<user>`、`/Users/<user>`、`C:\\Users\\<user>` → `~`（分隔符保留原样，不改成 `/`）；仅替换前缀，不触碰路径其余部分 |
 | 截断 | ≤512 字节，按 UTF-8 字符边界 |
 
 **管线顺序固定，不得颠倒**（顺序不同会产出不同 `raw`，而 `raw` 进入 `failed.error`）：

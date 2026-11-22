@@ -1,6 +1,6 @@
 # spec/stream-events.md — 流式事件契约
 
-- 版本：**1.0.1**
+- 版本：**1.0.2**
 - 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：Android 与 Windows 的传输层、协议层、状态层；conformance runner
@@ -99,6 +99,8 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 `finish_reason` 枚举（闭集，不得扩展）：`stop` | `length` | `tool_calls` | `content_filter` | `aborted_user`。
 
 `notice.code` 枚举（闭集）：`capability_stripped` | `input_truncated` | `multi_choice_ignored` | `usage_estimated` | `reasoning_unsupported` | `provider_downgraded` | `stream_interrupted`。`params` 为 `map<string, string | string[]>`（如 `{"dropped":["vision","tools"]}`），数组值就是规范，不得再序列化成逗号串。
+
+`usage` 的可选字段（`cached`/`reasoning`/`total`/`error_bound_pct`/`provider_cost`）**只在 provider 真的给出时出现**，缺省即不写该键（不写 `null`）。因此 `events.jsonl` 的字节由"样本给了什么"唯一决定，比对不需要额外规则。
 
 `usage.provider_cost`：`{"amount":"0.00231","currency":"USD"}`，仅当 provider 明确回报费用（OpenRouter）时出现；有它时以它为准，本地估算仍记录在 `usage_record.cost_estimate` 供对比。
 
@@ -203,11 +205,12 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 | `candidates[0].content.parts[i].text`，且 `parts[i].thought != true` | `delta`（见下方"累积去重"规则） |
 | `candidates[0].content.parts[i].text` 且 `thought == true` | `reasoning_delta` |
 | `candidates[0].content.parts[i].functionCall:{name,args}` | `tool_call_delta{index:顺序号,id:"call_<n>",name,args:JSON.stringify(args)}` 然后立即 `tool_call_end`（Gemini 不流式输出参数） |
-| `candidates[0].finishReason` | 记录：`STOP`→`stop`；`MAX_TOKENS`→`length`；`SAFETY`/`RECITATION`/`BLOCKLIST`/`PROHIBITED_CONTENT`→`content_filter`；`OTHER`→`stop` |
+| `candidates[0].finishReason` | 记录（**若本流已发出过 `tool_call_*`，则一律映射为 `tool_calls`**，因为客户端必须执行调用；其余按：`STOP`→`stop`；`MAX_TOKENS`→`length`；`SAFETY`/`RECITATION`/`BLOCKLIST`/`PROHIBITED_CONTENT`→`content_filter`；`OTHER`→`stop` |
 | `usageMetadata` | `usage{promptTokenCount, candidatesTokenCount, cachedContentTokenCount, thoughtsTokenCount}` |
 | `promptFeedback.blockReason` 且无 candidates | `failed(CONTENT_FILTERED)` |
 
-**累积去重规则（MUST）**：部分 Gemini 版本/代理会发送**累积**文本（每次带全文）。适配器 MUST 维护 `emitted_len`，只发射 `text[emitted_len:]`；若新 text 不以已发前缀开头（说明不是累积而是重写）→ 丢弃该帧并 trace `gemini_rewrite_ignored`。
+**累积去重规则（条件 MUST）**：仅当 `provider.cumulative_stream=1` 时，适配器 MUST 维护 `emitted_len`、只发射 `text[emitted_len:]`；若新 text 不以已发前缀开头 → 丢弃该帧并 trace `gemini_rewrite_ignored`。
+**当 `cumulative_stream=0`（默认，Gemini 正常增量流）时 MUST NOT 做任何前缀差集**——无条件去重会把增量流吞掉三分之二（GEM-001 即此场景）。这条与 §4.1 的 OpenAI 去重判据是同一个开关，不是两套规则。
 
 ### 4.5 OpenRouter
 
