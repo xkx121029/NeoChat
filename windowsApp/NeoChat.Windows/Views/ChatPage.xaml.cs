@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using NeoChat.Windows.Core.Chat;
 using NeoChat.Windows.Core.Design;
 using NeoChat.Windows.Core.Errors;
+using NeoChat.Windows.Views.Markdown;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
 using Windows.UI.Core;
@@ -185,21 +186,14 @@ public sealed partial class ChatPage : Page
 
     private void ApplyAssistantRow(FrameworkElement root, ChatMessageItem item)
     {
-        if (root.FindName("BodyRun") is Run run)
+        if (root.FindName("AssistantBody") is MarkdownHost body)
         {
-            run.Text = item.Text;
-        }
-
-        if (root.FindName("BodyCursor") is Border cursor)
-        {
-            cursor.Visibility = item.ShowStreamingCursor ? Visibility.Visible : Visibility.Collapsed;
-            if (item.ShowStreamingCursor)
+            // 增量解析：文本是追加时只重解析开着的那个块；光标由 MarkdownHost 内部维护（ST01/ST02）。
+            body.Text = item.Text;
+            body.ShowCursor = item.ShowStreamingCursor;
+            if (!item.IsStreaming)
             {
-                StartPulse(cursor, Motion.CreateCursorBlink(cursor));
-            }
-            else
-            {
-                StopPulse(cursor);
+                body.Complete();
             }
         }
 

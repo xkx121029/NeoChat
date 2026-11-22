@@ -67,6 +67,13 @@ public static class Tokens
         public const uint G14PillHairline = 0x120B152D; // G14 pill hairline = 7% — surfaces.dart:203
         public const uint G16Scrim = 0x520B111F; // G16 scrim = #0B111F 32% — surfaces.dart:170
 
+        // §1.3 语义色 · 代码井（M13–M17；Markdown 渲染新增，此前未被 UI 使用）
+        public const uint M13CodeWellBg = 0xFFEDF0F6; // M13 codeWellBg（代码井底）— semantic_colors.dart:206
+        public const uint M14CodeWellHeader = 0xFFE7EBF3; // M14 codeWellHeader — semantic_colors.dart:207
+        public const uint M15CodeWellFg = 0xFF1E232E; // M15 codeWellFg — semantic_colors.dart:208
+        public const uint M16CodeWellBorder = 0xFFDBDEE5; // M16 codeWellBorder — semantic_colors.dart:209
+        public const uint M17LineNumberFg = 0xFF7D8088; // M17 lineNumberFg — semantic_colors.dart:210
+
         /// <summary>Non-design helper: transparency used by control templates that must not paint.</summary>
         public const uint Transparent = 0x00000000; // 非设计数值：透明，供控件模板关闭默认底色
     }
@@ -170,6 +177,28 @@ public static class Tokens
 
         public const string SansFamily = "Segoe UI"; // §5 差异 9：WinUI 正文走系统字
         public const string IconFamily = "Segoe Fluent Icons"; // 任务单：图标用内置矢量
+        public const string MonoFamily = "Cascadia Mono"; // §5 差异 9：Windows 等宽用 Cascadia Mono
+
+        // Markdown 渲染新增（M1-WIN-003）：等宽字阶与标题字阶，全部取自既有条目
+        public const double MonoSize = 13; // T16 等宽正文 mono 13 — typography.dart:107-118
+        public const double MonoLineHeight = 20.15; // T16 行高 1.55 × 13 — typography.dart:107-118
+        public const double MonoSmallSize = 12; // T17 等宽小号 monoSmall 12 — typography.dart:121
+        public const double MonoSmallLineHeight = 18; // T17 行高 1.5 × 12 — typography.dart:121
+        public const double MonoLabelSize = 12; // T18 等宽标签 monoLabel 12 — typography.dart:124-125
+        public const double MonoLabelLineHeight = 16.2; // T18 行高 1.35 × 12 — typography.dart:124-125
+
+        public const double Heading1Size = 26; // T04 headlineLarge 26 — typography.dart:192
+        public const double Heading1LineHeight = 33.8; // T04 行高 1.3 × 26 — typography.dart:192
+        public const double Heading2Size = 22; // T05 headlineMedium 22 — typography.dart:193
+        public const double Heading2LineHeight = 28.6; // T05 行高 1.3 × 22 — typography.dart:193
+        public const double Heading3Size = 20; // T06 headlineSmall 20 — typography.dart:194
+        public const double Heading3LineHeight = 27; // T06 行高 1.35 × 20 — typography.dart:194
+        public const double Heading4Size = 18; // T07 titleLarge 18 — typography.dart:195
+        public const double Heading4LineHeight = 25.2; // T07 行高 1.4 × 18 — typography.dart:195
+        public const double Heading5Size = 16; // T08 titleMedium 16 — typography.dart:196
+        public const double Heading5LineHeight = 23.2; // T08 行高 1.45 × 16 — typography.dart:196
+        public const double Heading6Size = 14; // T09 titleSmall 14 — typography.dart:197
+        public const double Heading6LineHeight = 20.3; // T09 行高 1.45 × 14 — typography.dart:197
     }
 
     /// <summary>
@@ -250,5 +279,28 @@ public static class Tokens
         public const double SendDisabledAlpha = 0.12; // Y43 发送键禁用底 = onSurface 12% — composer.dart:903-905
         public const double SendForegroundDisabledAlpha = 0.38; // Y44 发送键禁用前景 = onSurface 38% — composer.dart:905-906
         public const double SendDisabledForegroundSize = 18; // Y45 stop 图标 18 — composer.dart:928-931
+
+        // Markdown 渲染新增（M1-WIN-003）。DESIGN-SYSTEM §7「未在源码找到/部分」一栏给出的实现值：
+        // 行内代码圆角 6、padding 4/1（markdown_body.dart:177-178）；代码井圆角 10、padding 12,10,14,10
+        // （markdown_body.dart:194-196）；表格 cell padding 12/8（markdown_body.dart:227）；hr 竖向内边距 12
+        // （markdown_body.dart:165）。设计系统 §1.7 把「代码井」列在 R03 md=14 下，与源码行 194-196 的 10 冲突，
+        // 以源码实现值为准，冲突已写入交付的待决问题段。
+        public const double CodeWellRadius = 10; // §7 代码井圆角 10 — markdown_body.dart:194-196（与 R03 md=14 冲突）
+        public const double CodeWellPaddingStart = 12; // §7 代码井内边距左 12 — markdown_body.dart:194-196
+        public const double CodeWellPaddingTop = 10; // §7 代码井内边距上 10 — markdown_body.dart:194-196
+        public const double CodeWellPaddingEnd = 14; // §7 代码井内边距右 14 — markdown_body.dart:194-196
+        public const double CodeWellPaddingBottom = 10; // §7 代码井内边距下 10 — markdown_body.dart:194-196
+        public const double InlineCodeRadius = 6; // R01 xs 行内代码圆角 6 — shapes.dart:25, markdown_body.dart:177-178
+        public const double InlineCodePaddingHorizontal = 4; // §7 行内代码 padding 水平 4 — markdown_body.dart:177-178
+        public const double InlineCodePaddingVertical = 1; // §7 行内代码 padding 垂直 1 — markdown_body.dart:177-178
+        public const double TableCellPaddingHorizontal = 12; // §7 表格 cell padding 水平 12 — markdown_body.dart:227
+        public const double TableCellPaddingVertical = 8; // §7 表格 cell padding 垂直 8 — markdown_body.dart:227
+        public const double HrMarginVertical = 12; // §7 hr 竖向内边距 12 — markdown_body.dart:165
+        public const double MarkdownBlockGap = 8; // P05 inTurn 同轮内块间距 8 — shapes.dart:76
+        public const double ListIndent = 20; // P02 xl 列表每级缩进 20 — shapes.dart:68（设计系统未给列表缩进，取既有档位）
+        public const double ListMarkerWidth = 18; // P02 md 12 + P01 xs 4 的标记列宽（设计系统未给列表标记列，推断值）
+        public const double BlockQuoteBarWidth = 3; // 推断值：设计系统无引用条令牌，取 3 以对齐 B01/B02 之间的视觉重量
+        public const double TableMinColumnWidth = 96; // 推断值：设计系统无表格最小列宽，防单字列挤压
+        public const double MathBadgeSize = 11; // T15 labelSmall 11（公式降级标注）— typography.dart:215-221
     }
 }

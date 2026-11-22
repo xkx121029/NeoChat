@@ -23,7 +23,7 @@
 | `spec/stream-events.md` | 1.0.2 | **FROZEN** | 2026-11-22 | 分帧层 + 8 类事件 + 五家映射 + 取消语义；四轮评审关闭 |
 | `spec/errors.md` | 1.0.2 | **FROZEN** | 2026-11-22 | 32 个 code / 21 个 action / 四家映射 / 脱敏管线 |
 | `spec/providers.md` | 1.0.0 | **FROZEN** | 2026-11-22 | Canonical ChatRequest + 五家契约 + 传输 + 覆盖语义 + 并发 |
-| `spec/render-model.md` | 1.0.0 | **FROZEN** | 2026-11-22 | 13 block / 10 inline + 前缀稳定性 + 四层等价 |
+| `spec/render-model.md` | 1.0.1 | **FROZEN** | 2026-11-22 | 13 block / 10 inline + 前缀稳定性 + 四层等价 |
 | `spec/schema/v1.sql` | 1.0.0 | **FROZEN** | 2026-11-22 | 22 表 + FTS5 + 12 索引，建库实测通过 |
 | `spec/schema/export-v1.json` | 1.0.0 | **FROZEN** | 2026-11-22 | required 与 NOT NULL 全量对齐；单 JSON ≤200MB |
 | `spec/conformance/CASES.md` | 1.0.1 | **FROZEN** | 2026-11-22 | 78 条用例 + 不变量覆盖表 + asserts 闭集 |
