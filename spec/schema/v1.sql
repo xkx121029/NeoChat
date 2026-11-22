@@ -53,12 +53,16 @@ CREATE TABLE provider (
   proxy_url             TEXT,
   connect_timeout_ms    INTEGER NOT NULL DEFAULT 10000 CHECK (connect_timeout_ms BETWEEN 1000 AND 120000),
   read_idle_timeout_ms  INTEGER NOT NULL DEFAULT 180000 CHECK (read_idle_timeout_ms BETWEEN 30000 AND 900000),
+  first_byte_timeout_ms INTEGER NOT NULL DEFAULT 60000 CHECK (first_byte_timeout_ms BETWEEN 5000 AND 300000),
+  total_timeout_ms      INTEGER NOT NULL DEFAULT 0 CHECK (total_timeout_ms = 0 OR total_timeout_ms >= 30000),
   max_retries           INTEGER NOT NULL DEFAULT 2 CHECK (max_retries BETWEEN 0 AND 5),
   concurrency_limit     INTEGER NOT NULL DEFAULT 4 CHECK (concurrency_limit BETWEEN 1 AND 32),
   extra_headers_json    TEXT,
   extra_query_json      TEXT,
   extra_body_json       TEXT,
   pass_through          INTEGER NOT NULL DEFAULT 0 CHECK (pass_through IN (0,1)),
+  billing_url           TEXT,     -- errors.md 的 top_up 用；NULL 表示该 action 不出现
+  status_url            TEXT,     -- errors.md 的 view_service_status 用；NULL 表示不出现
   sort_order            INTEGER NOT NULL DEFAULT 0,
   sync_version          INTEGER NOT NULL DEFAULT 1,
   rev                   TEXT NOT NULL,
@@ -255,6 +259,7 @@ CREATE TABLE message_part (
                ('text','reasoning','tool_call','tool_result','image','attachment_ref','notice')),
   body       TEXT,
   meta_json  TEXT,
+  truncated  INTEGER NOT NULL DEFAULT 0 CHECK (truncated IN (0,1)),  -- 该 part 本身被截断（ADR-003 §2.3）
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   UNIQUE (message_id, part_index)

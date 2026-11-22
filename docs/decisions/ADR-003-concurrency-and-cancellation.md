@@ -28,7 +28,7 @@ Idle → Preparing → Connecting → Streaming → (Finalizing | Cancelling | F
 
 1. 取消必须传播到 socket 层。Android：`Flow` 的 `collect` 作用域取消 → OkHttp `Call.cancel()`（`CancellationException` 不得被 `catch (e: Exception)` 吞掉，必须以 `ensureActive()` 或显式 rethrow 处理）。Windows：`CancellationToken` 必须一路传到 `HttpClient.SendAsync(..., ct)` 与 `ReadAsStreamAsync(ct)`，且 `OperationCanceledException` 必须与超时异常区分（`ex.CancellationToken == ct` 判据）。
 2. 每个会话同一时刻最多一个活跃流。新发送若检测到活跃流 → 先取消旧的并**等待其进入 Terminal**（≤2s），再开始新的。禁止两个流写同一个 `message`。
-3. 已生成内容必须保留：取消时把已收到的 `message_part` 标记 `truncated=true` 并落盘，UI 显示"已停止"而不是删除。
+3. 已生成内容必须保留：取消时把**最后一个仍在增长的** `message_part` 标记 `truncated=true`（`message_part.truncated` 列，见 `v1.sql`）并落盘，UI 显示「已停止」而不是删除。判定写死：**用户取消 → 该 part `truncated=true`，无论是否已有 delta**（首字节前取消时仍有占位 part，同样置 true，使 UI 一致呈现被中断状态）。
 4. 用户取消 → 流以 `done{finish_reason:"aborted_user"}` 结束（即使没有 delta），不产生 `failed`。超时与网络错误 → `failed`。
 5. 页面/窗口销毁 → 作用域取消 → 走 Cancelling 路径，落盘已完成部分。**流式仅前台保证**（人类裁决 2026-11-22）：后台挂起是合法行为（Android 后台被杀、Windows 现代待机同理），不视为缺陷，也不需要“补救”。
 6. **回前台“继续生成”**（同一裁决）：若某条消息因挂起而中断，UI 必须在**两处**明示——

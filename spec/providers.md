@@ -1,6 +1,6 @@
 # spec/providers.md — Provider 契约
 
-- 版本：**1.0.0-draft**
+- 版本：**1.0.0-draft.3**
 - 状态：DRAFT（待独立评审）
 - 起草日期：2026-11-22
 - 适用：协议层（双端）、模型管理、能力矩阵、传输层
@@ -21,7 +21,11 @@ ProviderConfig {
   org_id?,                        // OpenAI 组织
   keys: [KeyRef],                 // 1..N，见 ADR-002
   proxy: {mode: system|none|http|socks5, url?, auth?},
-  connect_timeout_ms, read_idle_timeout_ms, max_retries,
+  connect_timeout_ms, read_idle_timeout_ms,
+  first_byte_timeout_ms,          // 默认 60000，上限 300000（长思考模型可调）
+  total_timeout_ms,               // 默认 0 = 不限
+  max_retries,
+  billing_url?, status_url?,      // 计费页与状态页，供 errors.md 的 top_up / view_service_status 使用
   concurrency_limit,
   extra_headers: map<string,string>,
   extra_query: map<string,string>,
@@ -45,7 +49,7 @@ ProviderConfig {
 - 若 `base_url` 以 `/` 结尾则去掉尾部 `/`。
 - 若 `base_url` 已包含该协议的标准后缀（`/chat/completions`、`/messages`、`/responses`），MUST 直接使用，不再拼接。
 - 否则拼接：`openai_chat`/`openai_compatible`/`openrouter` → `/chat/completions`；`openai_responses` → `/responses`；`anthropic` → `/messages`；`gemini` → `/models/{model}:streamGenerateContent`。
-- 若用户填的 URL 指向网页（以 `/` 结尾且无版本段）→ 不报错，但返回 `notice(provider_downgraded)`? 否：交由 `ENDPOINT_NOT_FOUND` 呈现，并在诊断页提供"协议自动探测"。
+- 若用户填的 URL 指向网页（以 `/` 结尾且无版本段）→ 不产生任何 notice，交由 `ENDPOINT_NOT_FOUND`（404/HTML 响应）呈现，并在诊断页提供"协议自动探测"。
 
 ## 2. Canonical ChatRequest
 
@@ -103,18 +107,26 @@ ProviderConfig {
 | `tool_choice` | `auto`/`none`/`required`/`{type:"function",function:{name}}` | `auto`/`none`/`required`/`{type:"function",name}` | `{type:"auto"}`/`{type:"any"}`/`{type:"tool",name}` | `toolConfig.functionCallingConfig:{mode:AUTO|NONE|ANY, allowedFunctionNames?}` |
 | 工具调用（assistant） | `tool_calls:[{id,type:"function",function:{name,arguments:<json string>}}]` | `{type:"function_call",call_id,name,arguments}` | `{type:"tool_use",id,name,input:<object>}` | `{functionCall:{name,args}}`（无 id） |
 | 工具结果 | `{role:"tool",tool_call_id,content:<string>}` | `{type:"function_call_output",call_id,output}` | `{role:"user",content:[{type:"tool_result",tool_use_id,content}]}` | `{role:"user",parts:[{functionResponse:{name,response}}]}` |
-| `temperature` | 同 | 同 | 同（thinking 开启时必须 1） | `generationConfig.temperature` |
-| `top_p` | 同 | 同 | 同（与 temperature 互斥：只发一个） | `generationConfig.topP` |
+| `temperature` | 同 | 同 | 同，但 thinking 开启时必须为 1；且 canonical 同时给出 `temperature` 与 `top_p` 时**只发 `temperature`**（见下方优先级规则） | `generationConfig.temperature` |
+| `top_p` | 同 | 同 | 同，与 `temperature` 互斥：**canonical 里有 `temperature` 就发它、丢 `top_p`；没有 `temperature` 才发 `top_p`**。被丢弃的一方不产生事件 | `generationConfig.topP` |
 | `top_k` | 不支持 → 剥离 | 不支持 → 剥离 | 同 | `generationConfig.topK` |
 | `max_output_tokens` | `max_tokens`（新模型用 `max_completion_tokens`，由能力矩阵决定） | `max_output_tokens` | `max_tokens`（**必填**，缺省取模型默认） | `generationConfig.maxOutputTokens` |
 | `stop` | `stop` | 不支持 → 剥离 | `stop_sequences` | `generationConfig.stopSequences` |
 | `seed` | `seed` | 不支持 → 剥离 | 不支持 → 剥离 | `generationConfig.seed` |
 | `frequency_penalty` | 同 | 同 | 不支持 → 剥离 | `generationConfig.frequencyPenalty` |
 | `presence_penalty` | 同 | 同 | 不支持 → 剥离 | `generationConfig.presencePenalty` |
-| `reasoning.effort` | `reasoning_effort` | `reasoning:{effort,summary:"auto"}` | 由 `budget` 表达（effort 映射见 3.4） | `thinkingConfig.thinkingBudget` |
-| `reasoning.budget_tokens` | 忽略 → 映射 effort | `reasoning.effort` 估计 | `thinking:{type:"enabled",budget_tokens}` | `thinkingConfig.thinkingBudget` |
+| `reasoning.effort` | `reasoning_effort` | `reasoning:{effort,summary:"auto"}` | 由 `budget` 表达（effort→budget 见 3.4） | `thinkingConfig.thinkingBudget`（用 effort→budget 表换算） |
+| `reasoning.budget_tokens` | 按反向表映射为 `reasoning_effort` | 按反向表映射为 `reasoning.effort` | `thinking:{type:"enabled",budget_tokens}` | `thinkingConfig.thinkingBudget` |
 | `response_format=json_schema` | `response_format:{type:"json_schema",json_schema:{name,schema,strict:true}}` | `text:{format:{type:"json_schema",name,schema}}` | 不支持 → 剥离 + `notice` | `generationConfig:{responseMimeType:"application/json",responseSchema}` |
-| `cache.breakpoints` | 无操作（自动前缀缓存）+ `notice` | 同 | 在对应内容块加 `cache_control:{type:"ephemeral"}` | 无操作（cachedContent 需单独创建，v1 不做） |
+| `cache.breakpoints` | **不产生事件**（自动前缀缓存是 provider 行为，不是能力缺失；发 notice 会改变 `seq`） | 同 | 在对应内容块加 `cache_control:{type:"ephemeral"}` | **不产生事件**（cachedContent 需单独创建，v1 不做） |
+
+**`reasoning.mode` 与两个字段的优先级**（消除"两个都填了听谁的"）：
+
+1. `mode="off"` → 三个 provider 都不发任何推理参数，`budget_tokens`/`effort` 一律忽略。
+2. `mode="effort"` → 只用 `effort`，`budget_tokens` 忽略。
+3. `mode="budget"` → 只用 `budget_tokens`，`effort` 忽略；需要 effort 的 provider 按**反向表**换算。
+
+**反向表**（budget → effort，上界含）：`< 2048` → `low`；`2048 ~ 8191` → `medium`；`≥ 8192` → `high`。反向换算 MUST 记为估算，不影响 `usage.estimated`（那是 token 计数的标记）。
 
 **剥离规则**：任何被剥离的字段 MUST 产生 `notice(capability_stripped, {dropped:[...]})`，UI MUST 在消息气泡内以可读文案呈现（如"该模型不支持 seed 参数，已忽略"）。静默丢失是缺陷。
 
@@ -164,9 +176,12 @@ anthropic-beta: <按能力矩阵开启，如 prompt-caching / interleaved-thinki
 ### 3.5 Gemini generateContent
 
 ```http
-POST {base}/models/{model}:streamGenerateContent?alt=sse&key=<key>
+POST {base}/models/{model}:streamGenerateContent?alt=sse
+x-goog-api-key: <key>
 ```
-或头方式 `x-goog-api-key: <key>`（优先头方式，避免 key 出现在 URL 日志里）。
+**key 只走 `x-goog-api-key` 头**，MUST NOT 放进 query（会进日志）。若某端点确实只支持 `?key=`，才降级为 query，并在 trace 中对该参数脱敏。
+
+**query 串构造顺序固定**（影响 `request-golden`）：`alt` 由实现固定写入 `sse`；随后按 key 字典序追加 `extra_query`；`extra_query` 与固定参数同名时 **MUST 以 `extra_query` 为准**并记 trace `query_override`。
 
 - 角色映射：`user`→`user`，`assistant`→`model`。MUST 合并连续同角色消息（Gemini 要求交替）。`system` 走 `systemInstruction`。
 - `functionResponse.response` 必须是对象；若工具结果是字符串，MUST 包成 `{"result": "..."}`。
@@ -193,7 +208,7 @@ v1 MUST NOT 发送任何可识别用户的字段。`extra_body_json` 可传 `pro
 | openrouter | `GET {base}/models` | `data[].id, context_length, pricing{prompt,completion}, architecture.input_modalities` |
 
 规则：
-- 列表拉取失败 → 使用内置清单（随版本更新）+ 保留用户手动添加项，并 `notice` 说明"模型列表来自本地缓存"。
+- 列表拉取失败 → 使用内置清单（随版本更新）+ 保留用户手动添加项。这是**模型管理页的 UI 提示**，不是 `StreamEvent.notice`（后者只存在于对话流中），不改变任何 `seq`。
 - 合并策略：远端列表 ∪ 内置清单 ∪ 用户手动项；同名以远端为准（但用户手改过的字段 MUST 保留，标 `pinned_by_user=true`）。
 - 所有元数据本地可编辑：`context_window, max_output, vision, tools, thinking, cache, price_input, price_output, price_cache_read, price_cache_write, currency`。
 
@@ -205,7 +220,13 @@ v1 MUST NOT 发送任何可识别用户的字段。`extra_body_json` 可传 `pro
 | gemini | `POST {base}/models/{model}:countTokens`（准确） | 0 |
 | openai_chat / responses / openrouter / 兼容 | 无公开计数接口 → 本地分词器估算 | **英数混合 ±5%，中文为主 ±15%**（须在 UI 标注 `estimated=true` 与 `error_bound_pct`） |
 
-本地分词器选择（M2 决策项，需 ADR）：Android `com.kmnv.jtokkit` 或同类；Windows `Microsoft.ML.Tokenizers`。两者 MUST 对同一测试语料输出相同 token 数（偏差 >1% 即返工）。
+本地分词器选择（M2 决策项，需 ADR）：Android `com.jtokkit` 或同类；Windows `Microsoft.ML.Tokenizers`。
+
+**不承诺双端逐 token 相同**——两套分词器在中文与代码语料上必然有偏差。要求改为：
+1. 双方各自对同一金语料（中英混排、代码、JSON、长数字）报告偏差，偏差写入 \`docs/benchmarks/\`；
+2. 只要偏差落在该模型声明的误差界内（英数混合 ±5%、中文为主 ±15%）即可接受；
+3. 任一端偏差超出上界，则该端改用另一端的分词器实现，或把该模型的 token 估算改为"仅显示区间"。
+4. \`error_bound_pct\` 取实测偏差，不取名义值。
 
 ## 6. 能力矩阵与自动降级
 
@@ -218,6 +239,21 @@ v1 MUST NOT 发送任何可识别用户的字段。`extra_body_json` 可传 `pro
 | `json_schema` 但请求为结构化输出 | 降级为 `json_object`（若支持）或纯文本 + 在提示词前置约束，并通知 |
 | `thinking` 但请求开启推理 | 剥离推理参数，`notice(reasoning_unsupported)` |
 | 上下文超窗 | 不自动截断，返回 `CONTEXT_OVERFLOW` + `reduce_context` 操作（自动截断会让用户丢失信息且不可预期） |
+
+## 6.5 覆盖语义（settings_json / sampling_json）
+
+`conversation.settings_json` 与 `agent_profile.sampling_json` 都是对 canonical `sampling` 与 `reasoning` 的**逐字段覆盖**，不是整体替换：
+
+1. 取值优先级（高→低）：会话 `settings_json` → Agent `sampling_json` → 模型元数据默认 → provider 默认（即"不发送该字段"）。
+2. 每层只覆盖自己出现的键；**显式 `null` 表示"取消下层设置，回到不发送"**，与"该键不存在"不同。
+3. 未出现在任何层的键，canonical 里即为 `null`（未指定），按 `providers.md` §3 的"不支持则剥离"处理。
+4. 三处实现必须一致，否则 `request-golden`（§8 判据 4）会失败。
+
+## 6.6 并发上限
+
+- 全局上限存 `app_setting` 键 `net.max_concurrent_streams`，默认 4，上限 16。
+- 单 provider 上限存 `provider.concurrency_limit`（默认 4），是全局上限之内的子配额：实际并发 = min(全局剩余, provider 剩余)。
+- 单 Key 限流桶在 M2 引入，桶参数存 `provider_key.rpm_limit` / `tpm_limit` / `daily_request_limit`。
 
 ## 7. 传输层契约
 

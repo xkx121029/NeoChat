@@ -1,6 +1,6 @@
 # spec/stream-events.md — 流式事件契约
 
-- 版本：**1.0.0-draft.2**
+- 版本：**1.0.0-draft.3**
 - 状态：DRAFT（待独立评审；按准则 7 我不批准自己写的 spec）
 - 起草日期：2026-11-22
 - 适用：Android 与 Windows 的传输层、协议层、状态层；conformance runner
@@ -37,7 +37,7 @@ L1 与 L2 的实现是双端各自一份，但 L2 的**输出必须逐字节相�
 8. UTF-8 起始处的 BOM（`EF BB BF`）MUST 被丢弃。
 9. 非法 UTF-8 字节 MUST 替换为 U+FFFD 并继续解析（不抛异常），在 trace 中计数 `invalid_utf8_bytes`。
 10. 单帧载荷上限：**16 MiB**（可配置，下限 1 MiB）。超限 → `failed(PARSE_EVENT_TOO_LARGE)`，并 MUST 立即关闭 socket 防止内存耗尽。
-11. 单行上限：8 MiB。超限同 10。
+11. **单行上限与单帧上限相同**（16 MiB），对 `data:` 行与其它行一视同仁。禁止为单行设更严的上限：一次 10 MiB 的合法单行 `data:` 必须被接受（FRAME-009 即此形态）。
 
 ### 2.2 空闲与超时
 
@@ -52,7 +52,7 @@ read_idle 触发 → `failed(NET_READ_TIMEOUT)`。注意：注释行 MUST 重置
 
 ### 2.3 结束语义
 
-- 正常结束：收到 provider 的终止标记（OpenAI `[DONE]`；Anthropic `message_stop`；Responses `response.completed`；Gemini 数组结束或 `alt=sse` 流 EOF）→ 必须已发出且仅发出一个终止事件。
+- 正常结束：收到 provider 的终止标记（OpenAI `[DONE]`；Anthropic `message_stop`；Responses `response.completed` 或 `response.incomplete`（后者表示被 `max_output_tokens` 截断，仍按 `done{length}` 结束）；Gemini 数组结束或 `alt=sse` 流 EOF）→ 必须已发出且仅发出一个终止事件。
 - EOF 但无终止标记：
   - 若已收到 `finish_reason`/`stop_reason`/`finishReason` → 补发 `done`（宽容路径，常见于兼容端点省略 `[DONE]`）。
   - 否则 → `failed(PARSE_INCOMPLETE)`，携带 `partial_text_length`。
@@ -96,7 +96,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 
 `finish_reason` 枚举（闭集，不得扩展）：`stop` | `length` | `tool_calls` | `content_filter` | `aborted_user`。
 
-`notice.code` 枚举：`capability_stripped` | `input_truncated` | `multi_choice_ignored` | `usage_estimated` | `reasoning_unsupported` | `provider_downgraded`。`params` 为字符串映射（如 `{"dropped":["vision","tools"]}`）。
+`notice.code` 枚举（闭集）：`capability_stripped` | `input_truncated` | `multi_choice_ignored` | `usage_estimated` | `reasoning_unsupported` | `provider_downgraded` | `stream_interrupted`。`params` 为 `map<string, string | string[]>`（如 `{"dropped":["vision","tools"]}`），数组值就是规范，不得再序列化成逗号串。
 
 `usage.provider_cost`：`{"amount":"0.00231","currency":"USD"}`，仅当 provider 明确回报费用（OpenRouter）时出现；有它时以它为准，本地估算仍记录在 `usage_record.cost_estimate` 供对比。
 
@@ -111,7 +111,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 | I5 | 所有 `tool_call_end` 必在 `done` 之前；每个打开过的 index 恰好一个 `tool_call_end`；`done{finish_reason:"tool_calls"}` 意味着至少一个 index 曾打开 |
 | I6 | `delta.text` 与 `reasoning_delta.text` 均非空字符串（空串 MUST NOT 发射） |
 | I7 | 每个 index 的**首个** `tool_call_delta` MUST 携带 `id` 与 `name`（`id` 缺失时适配器必须合成 `call_<index>`）；后续增量 MUST NOT 重复携带 `name` |
-| I8 | 事件流与网络帧解耦：一个 provider 帧可产生 0..N 个事件；一个事件 MUST NOT 跨两个 provider 帧被拆分 |
+| I8 | 事件流与网络帧解耦：一个 provider 帧可产生 0..N 个事件；一个事件 MUST NOT 跨两个 provider 帧被拆分（表现为半条 JSON）。**唯一例外**：`usage` 允许由多帧合并而成（Anthropic 的 input 在 `message_start`、output 在 `message_delta`），合并后仍只发一条 |
 | I9 | 心跳/注释/空帧 MUST NOT 产生任何事件 |
 | I10 | 用户取消 MUST 以 `done{finish_reason:"aborted_user"}` 结束，MUST NOT 为 `failed` |
 | I11 | 一次尝试（attempt）内，`delta` 的文本 MUST NOT 重发已发过的前缀（适配器须维护 `emitted_prefix_len` 做差集） |
@@ -143,7 +143,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 | `choices.length > 1` | 只用 `index==0`，其余丢弃 + `notice(multi_choice_ignored)` |
 | `data: {"error":{...}}` | `failed`（errors.md §5.1） |
 
-`finish_reason` 映射：`stop`→`stop`；`length`→`length`；`tool_calls`/`function_call`→`tool_calls`；`content_filter`→`content_filter`；缺失→`stop`（EOF 宽容路径）。
+`finish_reason` 映射（只对**出现过**的取值映射）：`stop`→`stop`；`length`→`length`；`tool_calls`/`function_call`→`tool_calls`；`content_filter`→`content_filter`。**字段缺失时不得映射为 `stop`**：EOF 一律回到 §2.3 判定（从未见过 `finish_reason` → `failed(PARSE_INCOMPLETE)`）。
 
 ### 4.2 OpenAI Responses API
 
@@ -161,19 +161,20 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 
 ### 4.3 Anthropic Messages
 
-请求 `stream: true`。`event:` 字段是分派依据，`data:` 是 JSON。
+请求 `stream: true`。`event:` 字段是**首选**分派依据；`event:` 缺失时 MUST 按 `data.type` 分派；两者同时存在且冲突时以 `data.type` 为准并记 trace（对应 ANT-006）。
 
 | provider 事件 | 映射 |
 | --- | --- |
 | `message_start` | 记 `usage.input_tokens`、`cache_read_input_tokens`、`cache_creation_input_tokens`（供最终 usage 合并） |
 | `content_block_start` `{index,content_block:{type:"text"}}` | 无事件 |
 | `content_block_start` `{type:"thinking"}` | 无事件（后续 thinking_delta 承载） |
-| `content_block_start` `{type:"tool_use",id,name}` | 分配 `eventIndex`（与 provider 的 `index` 不必相同，MUST 映射），`tool_call_delta{index,id,name,args:""}` |
+| `content_block_start` `{index,content_block:{type:"tool_use",id,name}}` | `eventIndex` = 本流中 `tool_use` 块的**出现顺序**（从 0 起，text/thinking 块不占号），`tool_call_delta{index:eventIndex,id,name,args:""}` |
 | `content_block_delta` `{delta:{type:"text_delta",text}}` | `delta` |
 | `content_block_delta` `{delta:{type:"thinking_delta",thinking}}` | `reasoning_delta` |
-| `content_block_delta` `{delta:{type:"input_json_delta",partial_json}}` | `tool_call_delta{index,args:partial_json}` |
+| `content_block_delta` `{delta:{type:"input_json_delta",partial_json}}` | `tool_call_delta{index:eventIndex,args:partial_json}`（按该 delta 所属 content block 的 provider `index` 反查 `eventIndex`） |
 | `content_block_delta` `{delta:{type:"signature_delta"}}` | 忽略（记 trace） |
-| `content_block_stop` （该 block 为 tool_use） | `tool_call_end{index}` |
+| `content_block_stop` （该 block 为 tool_use） | `tool_call_end{index:eventIndex}` |
+| 未列出的 `content_block_start` 类型（`redacted_thinking`、`citations_delta`、`server_tool_use` 等） | MUST 忽略并记 trace，MUST NOT 当作正文或思考上屏 |
 | `message_delta` `{delta:{stop_reason},usage:{output_tokens}}` | 记 stop_reason 与 output_tokens |
 | `message_stop` | `usage`（合并 `message_start` 的 input + `message_delta` 的 output）→ `done` |
 | `ping` | 无事件（仅重置 idle） |
@@ -185,7 +186,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 
 ### 4.4 Google Gemini generateContent
 
-请求必须用 `streamGenerateContent?alt=sse`。若端点拒绝 `alt=sse`（返回 JSON 数组），MUST 回退到数组模式：按 `[\s*,\s*]` 边界流式切出 JSON 对象（需增量 JSON 解析器，不得累积全量再解析）。
+请求必须用 `streamGenerateContent?alt=sse`。若端点拒绝 `alt=sse`（返回 JSON 数组），MUST 回退到数组模式：按**顶层 JSON 值的边界**流式切出对象——跟踪 `{}`/`[]` 深度与字符串/转义状态，深度归零即一个完整对象（必须用增量解析，不得累积全量后再解析）。禁止用正则按逗号切分：字符串内部的逗号与转义序列会导致切错。
 
 | provider 帧 | 映射 |
 | --- | --- |
@@ -217,7 +218,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 2. 重试：仅在**尚未发射任何事件**时允许自动重试；重试发出的是同一份请求字节快照。
 3. 并发：同一 message 同一时刻只允许一个活跃流（ADR-003 §2.2）。
 4. 终止后：MUST 立即释放连接，不得悬挂。
-5. 悬挂流修复：进程被杀会留下未终止的流，启动时 MUST 把超过 60s 未更新的 `status='streaming'` 消息改为 `aborted`（`finish_reason` 置 null），保留已落盘内容，并追加一条 `notice` part 说明中断；MUST NOT 自动重发。
+5. 悬挂流修复：进程被杀会留下未终止的流，启动时 MUST 把超过 60s 未更新的 `status='streaming'` 消息改为 `aborted`（`finish_reason` 置 null），保留已落盘内容，并追加一条 `notice` part（`code=stream_interrupted`）说明中断；MUST NOT 自动重发。
 
 ---
 

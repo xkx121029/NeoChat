@@ -24,7 +24,7 @@
 ## 3. 附件策略
 
 - 默认 `include_attachments='none'`：只导出元数据。导入后附件缺失，UI 标注"附件未包含在此次导出中"，**不静默显示空图**。
-- `inline`：字节以 base64 内嵌。单文件上限 `size_bytes ≤ 20MB`，超限的附件降级为元数据并在 `attachment` 上标 `content_omitted=true`（该字段仅在 inline 模式出现，schema 允许 `content_b64` 缺失）。
+- 默认 `inline`：字节以 base64 内嵌。单文件上限 `size_bytes ≤ 20MB`；超限的附件只带元数据并标 `content_omitted=true`（该字段已进 schema，仅在 inline 模式出现；`content_omitted=true` 时 `content_b64` 必须缺失）。
 - 导入时按 `sha256` 去重：已存在同哈希附件则只建立引用，不重复落盘。
 
 ## 4. 导入校验（防攻击）
@@ -42,16 +42,35 @@
 | `local_path` | 必须是相对路径，不得含 `..` 或盘符 | 拒绝（路径穿越） |
 | 字符串长度 | 单字段 ≤20MB | 拒绝 |
 | 事务 | 全部导入在**一个事务**内，失败整体回滚 | — |
+| 错误路径 | MUST 用 JSON Pointer（如 `/data/attachments/3/local_path`），双端同格式 | 报告逐条列出 |
 
 ## 5. 密钥导出（与 ADR-002 对应）
 
 - `include_secrets=true` 时必须有 `secrets` 块，且用户提供口令（不落盘）。
 - 明文 `provider_key` 载荷为：`[{id, provider_id, key: "<明文>", label, hint_head, hint_tail}]`。其它字段仍在 `data.provider_keys` 里（不含 key）。
-- AAD = `{format, format_version, app, options, secrets.kdf, secrets.cipher}` 的规范化 JSON（键排序、无空白、UTF-8）。
+- **AAD 的唯一定义就是本节这一句**：`{format, format_version, app, options, secrets.kdf, secrets.cipher}` 的规范化 JSON（键排序、无空白、UTF-8）。`export-v1.json` 的 `ciphertext_b64.description` 与 ADR-002 都以本节为准；任何一方增删一项都会让 GCM 校验跨端失败。
 - 导入时先校验结构，再要求口令解密；口令错误只报一次通用错误，不重试爆破。
 
-## 6. 待决问题（M3 前必须定）
+## 6. v1 的格式决定（不再留待决）
 
-1. 导出文件是单个 JSON（内嵌 base64）还是 zip 包（JSON + 附件目录）？当前 schema 按单 JSON 设计。2GB 单 JSON 在低端 Android 上解析需要流式 parser（不能 `json.load` 全量），这会显著增加工作量。**建议：默认单 JSON（≤200MB），超过 200MB 时自动切 zip。**
-2. `settings` 是否导出设备相关项（如窗口位置、代理配置）？当前导出全部，导入时按白名单过滤设备相关键。需人类确认。
-3. 是否需要"仅导出文本"的轻量模式（Markdown），与无损格式并存。M3 定。
+1. **容器：只有单个 JSON 文件。** 不实现 zip，不做「超过某大小自动切 zip」——那会让导入端必须先探测容器类型，而 schema 里没有容器字段，两端必然对同一文件得出不同结论。
+2. **大小上限：200 MB**，超过则拒绝导出并提示按会话范围分批导出。这同时是安全边界与内存边界：`export` 与 `import` 都 MUST 用流式 parser，禁止把整个文件读成一个字符串再解析。
+3. **`settings` 导出全部键**，导入时按白名单过滤设备相关键（窗口位置、显示器、代理凭据句柄、安装路径）。白名单常量两端各一份，并配共享测试向量。
+4. **不提供「仅导出文本」模式**：Markdown 导出属会话级导出功能（M3），不属本格式。
+
+## 7. v1 明确不做
+
+| 项 | 原因 |
+| --- | --- |
+| zip 容器 | 导入端需探测容器类型，schema 无字段，双端会分歧 |
+| 增量/差分导出 | 需要基线版本管理，与「无损往返」判据冲突 |
+| 附件按 path 外部引用 | 跨设备路径无意义，且是路径穿越攻击面 |
+
+## 8. 导入时的密钥重建
+
+`provider_key.key_ref` 是**本地平台密钥库的句柄**，导出文件里不包含（`required` 里也没有）。导入时 MUST 逐行为每个 key 重新创建密钥库条目并写入新的 `key_ref`；`UNIQUE(provider_id, key_ref)` 因此不会冲突。若文件不含 `secrets` 块，导入后的 key 只有 `hint_head`/`hint_tail` 与元数据，状态标为「需要重新录入密钥」，UI 明确提示，不静默标为可用。
+
+## 9. 空集合与 scope
+
+- `options.scope='settings'` 时 `data` 仍必须存在五个必填集合，内容为空数组（`required` 不因 scope 放宽）。
+- 导入端 MUST NOT 把「集合缺失」与「集合为空」视为等价：缺失即校验失败。

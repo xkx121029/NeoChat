@@ -20,15 +20,15 @@
 
 | 文件 | 版本 | 状态 | 日期 | 变更摘要 |
 | --- | --- | --- | --- | --- |
-| `spec/stream-events.md` | 1.0.0-draft.2 | DRAFT（待交叉评审） | 2026-11-22 | 首版 + 悬挂流修复 + “继续生成”定性 |
-| `spec/errors.md` | 1.0.0-draft | DRAFT（待交叉评审） | 2026-11-22 | 首版：统一错误对象 + 24 个错误码 + 双端文案 + provider 映射 |
-| `spec/providers.md` | 1.0.0-draft | DRAFT（待交叉评审） | 2026-11-22 | 首版：Canonical ChatRequest + 五家请求/响应契约 + 传输契约 |
-| `spec/render-model.md` | 1.0.0-draft.2 | DRAFT（待交叉评审） | 2026-11-22 | 首版 + 视觉容差定值（2dp/2px）+ L4 行为等价 + mermaid 边界 |
-| `spec/schema/v1.sql` | 1.0.0-draft | DRAFT（待交叉评审） | 2026-11-22 | 首版：22 张表 + FTS5 + 12 索引 + 软删除 + 版本向量（已实测可建库） |
-| `spec/schema/export-v1.json` | 1.0.0-draft | DRAFT（待交叉评审） | 2026-11-22 | 首版：无损导出 JSON Schema |
-| `spec/conformance/CASES.md` | 1.0.0-draft | DRAFT（待交叉评审） | 2026-11-22 | 首版：70 条用例 |
+| `spec/stream-events.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 6 条 MUST-FIX 已修（见 docs/reviews/spec-review-1.md） |
+| `spec/errors.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 32 个 code / 21 个 action；评审 6 条 MUST-FIX 已修 |
+| `spec/providers.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 4 条 MUST-FIX 已修；新增覆盖语义 §6.5、并发上限 §6.6 |
+| `spec/render-model.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 3 条 MUST-FIX 已修；补 info string 语法、图片成块判定、引用式链接策略 |
+| `spec/schema/v1.sql` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 22 表 + FTS5 + 12 索引；补 message_part.truncated 与 provider 四列；建库已实测 |
+| `spec/schema/export-v1.json` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | required 与 DDL NOT NULL 全量对齐（自动校验通过）；容器定为单 JSON ≤200MB |
+| `spec/conformance/CASES.md` | 1.1.0-draft | 已评审·待复验 | 2026-11-22 | 78 条用例；新增不变量覆盖表；比对规则写明剔除非确定性字段 |
 
-**冻结含义**：升为 FROZEN 需 (a) 独立评审通过，(b) 双端各有一份按本 spec 实现的最小验证，(c) G0 验收记录落盘。当前全部为 DRAFT，因为准则 7 不允许我批准自己写的东西。
+**冻结含义**：升为 FROZEN 需 (a) 独立评审通过（已完成第一轮，见 [docs/reviews/spec-review-1.md](reviews/spec-review-1.md)），(b) MUST-FIX 逐条修完并通过第二轮复验，(c) 双端各有一份按本 spec 实现的最小验证（M1），(d) G0 验收记录落盘。**当前是「已评审·待复验」**：29 条 MUST-FIX 已全部修入，等第二轮确认，我不自我批准。
 
 ## 3. 质量仪表盘
 
@@ -75,19 +75,25 @@ M0 任务单全部在 [docs/M0-TASKS.md](docs/M0-TASKS.md)。**无任务已下�
 
 ## 5. 阻塞与未决
 
-见 [docs/DECISIONS_NEEDED.md](docs/DECISIONS_NEEDED.md)。当前阻塞 M0 的：D1 三角选择、D5 远程仓库与托管位置、D4 密钥导出口令加密方案确认。
+见 [docs/DECISIONS_NEEDED.md](docs/DECISIONS_NEEDED.md)。D1（三角，B 默认生效）、D2/D3/D4/D7（人类已裁决）、D5（仓库，已首推）均已解除。**当前只剩 D6（许可证白名单，按默认方案生效）**。
+
+另：人类 2026-11-22 指定**全部工作在本机完成，不使用云端机器**——crew thread 与子代理都必须在 device 上跑。
 
 ## 6. 技术债
 
 | 条目 | 来源 | 风险等级 | 偿还阶段 | 不偿还的后果 |
 | --- | --- | --- | --- | --- |
-| （空） | | | | |
+| v1 不解析引用式链接（`[x][y]`、`[label]: url`） | render-model §2.3 | 低 | M3 评估 | 用户看到原始方括号，不渲染为可点击链接 |
+| 导出不支持 zip 容器（单 JSON 上限 200MB） | export notes §6 | 中 | 视用户反馈 | 超大附件集合无法一次导出，需分批 |
+| 无 provider 级流式断点续传 | ADR-003 §3 | 中 | 无计划（各家无接口） | 断线只能「继续生成」，不能无缝续流 |
+| Mermaid 仅 flowchart/sequence | RULINGS 2026-11-22 #5 | 中 | 视需求 | class/state/gantt 等降级为代码块 |
+| 双端分词器偏差未统一 | providers §5 | 中 | M2（ADR 待写） | token 估算两端略有差异，已用误差标注兜住 |
 
 ## 7. 本阶段验收记录
 
 | 任务 | 结论 | 否决原因 | 返工指令 | 复验条件 |
 | --- | --- | --- | --- | --- |
-| （空） | | | | |
+| M0-REV-001 契约独立评审 | **改后冻结** | 29 条 MUST-FIX，其中 3 条阻塞级：`trace_id`×双端 SHA 判据、§2.3×§4.1 终止分支相反、8 MiB 单行×FRAME-009 互斥 | 已按报告逐条修入，见 `spec/CHANGELOG.md` 的 draft.3 / 1.1.0-draft 五行 | 第二轮独立评审对同一 29 条逐条确认关闭，且无新增 MUST-FIX |
 
 ## 8. 对抗评审记录
 
