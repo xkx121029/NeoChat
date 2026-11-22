@@ -1,7 +1,7 @@
 # spec/stream-events.md — 流式事件契约
 
-- 版本：**1.0.0-draft.5**
-- 状态：DRAFT（待独立评审；按准则 7 我不批准自己写的 spec）
+- 版本：**1.0.0**
+- 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：Android 与 Windows 的传输层、协议层、状态层；conformance runner
 - 规范性用语：MUST / MUST NOT / SHOULD / MAY 按 RFC 2119 解释

@@ -1,7 +1,7 @@
 # spec/render-model.md — RenderModel（渲染 AST）
 
-- 版本：**1.0.0-draft.3**
-- 状态：DRAFT（待独立评审）
+- 版本：**1.0.0**
+- 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：双端 Markdown 解析器、渲染器、流式渲染、截图比对
 

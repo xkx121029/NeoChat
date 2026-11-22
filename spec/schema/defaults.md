@@ -1,0 +1,63 @@
+# spec/schema/defaults.md — 默认值单一来源
+
+> 本表是**默认值的唯一事实来源**。`v1.sql` 的 `DEFAULT` 子句、`providers.md` 的散文、以及将来的设置页都必须与它一致。
+> 散文里禁止复述数字（复述就会漂移），需要提默认值时指向本表。
+> `tools/spec-lint/verify.py` 逐行比对本表与 DDL 的 `DEFAULT`，任何一边改了另一边没改即 FAIL。
+
+| 表 | 列 | 默认值 |
+| --- | --- | --- |
+| migration | integrity_ok | `0` |
+| provider | proxy_mode | `system` |
+| provider | connect_timeout_ms | `10000` |
+| provider | read_idle_timeout_ms | `180000` |
+| provider | first_byte_timeout_ms | `60000` |
+| provider | total_timeout_ms | `0` |
+| provider | max_retries | `2` |
+| provider | concurrency_limit | `4` |
+| provider | pass_through | `0` |
+| provider | cumulative_stream | `0` |
+| provider | sort_order | `0` |
+| provider | sync_version | `1` |
+| provider_key | health_score | `1.0` |
+| provider_key | failure_count | `0` |
+| provider_key | enabled | `1` |
+| model | supports_vision | `0` |
+| model | supports_tools | `0` |
+| model | supports_thinking | `0` |
+| model | supports_cache | `0` |
+| model | supports_json_schema | `0` |
+| model | max_tokens_param | `max_tokens` |
+| model | currency | `USD` |
+| model | is_custom | `0` |
+| model | pinned_by_user | `0` |
+| model | sync_version | `1` |
+| agent_profile | memory_scope | `agent` |
+| agent_profile | sort_order | `0` |
+| agent_profile | sync_version | `1` |
+| prompt_template | sort_order | `0` |
+| prompt_template | sync_version | `1` |
+| memory_item | pinned | `0` |
+| memory_item | sync_version | `1` |
+| folder | sort_order | `0` |
+| conversation | title_auto | `1` |
+| conversation | pinned | `0` |
+| conversation | archived | `0` |
+| conversation | message_count | `0` |
+| conversation | sync_version | `1` |
+| message | sibling_index | `0` |
+| message | status | `complete` |
+| message | truncated | `0` |
+| message | sync_version | `1` |
+| message_part | truncated | `0` |
+| attachment | ref_count | `0` |
+| message_attachment | part_index | `0` |
+| usage_record | input_tokens | `0` |
+| usage_record | output_tokens | `0` |
+| usage_record | cached_tokens | `0` |
+| usage_record | reasoning_tokens | `0` |
+| usage_record | currency | `USD` |
+| usage_record | is_estimate | `0` |
+| mcp_server | enabled | `1` |
+| mcp_tool | enabled | `1` |
+| mcp_tool | danger_level | `safe` |
+| tool_call_record | status | `running` |

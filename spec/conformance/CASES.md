@@ -1,7 +1,7 @@
 # spec/conformance/CASES.md — conformance 用例集
 
-- 版本：**1.1.2-draft**
-- 状态：DRAFT（待独立评审）
+- 版本：**1.0.0**
+- 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 用例总数：**78**
 
@@ -19,9 +19,10 @@
 | 判据 | (1) 双端 `events.jsonl` 的 SHA-256 相同；(2) 与 `expected.jsonl` 相同（若提供）；(3) `meta.json` 的 `expect_error` 命中 |
 | **非确定性字段** | 比对前 MUST 剔除：`failed.error.trace_id`、`failed.error.request_id`、`failed.error.raw` 中由 provider 生成的 id。剔除后仍不相同即为失败。剔除清单的改动需升版本 |
 | 非事件断言 | `meta.json` 可选 `asserts`，形状固定：`{db:[{check,args}], socket:[{expect,within_ms}], perf:[{metric,op,value}]}`。**任何一条断言失败 → 该用例失败**（断言是判定的一部分，不是参考资料）；`exit.json.asserts` 必须逐条输出 `{id, ok, actual}`，缺失条目也判失败。缺整个 `asserts` 段仅表示"该用例不检查这些方面"，不得因此放过已有断言。 |
-| `db` 断言 | `check` 闭集：①`message_status`，args `{message_id:"last"\|"<uuid>", status:"aborted"\|"complete"\|...}`；②`message_part_truncated`，args `{part:"last", value:true\|false}`；③`row_count`，args `{table:"<表名>", where:{<列>:<值>,...}, count:<int>}`；④`no_rows`，args `{table, where}`。`where` 语法：**扁平对象，列名→期望值，全部 AND**，不支持嵌套、不支持运算符（要范围就写两条用例） |
+| `db` 断言 | `check` 闭集：①`message_status`，args `{message_id, status}`；②`message_part_truncated`，args `{part, value}`；③`row_count`，args `{table, where, count}`；④`no_rows`，args `{table, where}`。`where` 语法：**扁平对象，列名→期望值，全部 AND**；**空对象 `{}` 表示不过滤（统计全表）**；不支持嵌套与运算符。 |
+| 标识符来源（闭集） | `where` 的值与 `args.message_id` 只能是以下三种：①字面量 uuid，②`"last"`（该用例本次运行最后写入的记录，按 `created_at, id` 排序取 1，该表无写入时该断言判失败而不是跳过），③`"$fixture.<name>"`（取 `meta.json.fixtures.<name>`，`meta.json` 缺该键则该用例判失败）。**除此之外任何字面量都算用例缺陷**——CAN-003 曾经写死 `"c0"`、EXPORT-003 曾经断言一个没人写入的字段，都是这么来的 |
 | `socket` 断言 | 形状 `{expect:"stream_count_zero", within_ms:<int>}`。唯一判据：从终止事件时间点起，实现暴露的测试钩子 `activeStreamCount()` 在 `within_ms` 内归零。**归零的含义包含"归还到连接池"**——池中空闲连接不算 active（否则与 providers §7 的连接复用冲突） |
-| `perf` 断言 | `{metric:"<case-id>", op:"lte"\|"gte", value:<number>}`，单位取 `meta.json.perf_unit`（`ms` / `count` / `bytes`） |
+| `perf` 断言 | `{metric:"<case-id>", op:"lte"\|"gte", value:<number>}`，单位取 `meta.json.perf_unit`（`ms` / `count` / `bytes`）。**测量方法写死**：重复 N=100 次，丢弃前 10 次预热，取 **p50**，不是单样本——否则忙机器上必然误红。`meta.json` 必须同时给 `perf_method`（如 `"append-10-char"`），与 `metric` 一一对应 |
 | 错误路径格式 | 导入类用例的错误路径 MUST 为 JSON Pointer（如 `/data/attachments/3/local_path`），双端同格式 |
 | 期望文件 | 每个用例必须有 `expected.jsonl` 或 `expect_error`，二者必居其一 |
 
@@ -120,8 +121,8 @@
 | ID | 场景与构造 | 期望 | 层 |
 | --- | --- | --- | --- |
 | CAN-001 | 连接建立后、首字节前取消 | 恰好一个 `done{aborted_user}`，无 `failed`；`asserts:{"socket":[{"expect":"stream_count_zero","within_ms":200}],"db":[{"check":"message_status","args":{"message_id":"last","status":"aborted"}}]}` | L3 |
-| CAN-002 | 收到 3 个 delta 后取消 | 3 delta + `done{aborted_user}`；DB 中该 message `status='aborted'`，最后一个 part `truncated=1`（ADR-003 §2.3：用户取消一律置 1，不论是否已有 delta）；`asserts:{"db":[{"check":"message_part_truncated","args":{"part":"last","value":true}},{"check":"row_count","args":{"table":"message_part","where":{"message_id":"last"},"count":1}}],"socket":[{"expect":"stream_count_zero","within_ms":200}]}` | L3 |
-| CAN-003 | 取消后 10ms 内发起新请求 | 旧流进入 Terminal 后才发出新请求，无交错写同一 message；`asserts:{"db":[{"check":"row_count","args":{"table":"message","where":{"conversation_id":"c0","status":"streaming"},"count":1}}]}`（同一会话同时最多 1 条 streaming） | L3 |
+| CAN-002 | 收到 3 个 delta 后取消 | 3 delta + `done{aborted_user}`；DB 中该 message `status='aborted'`，最后一个 part `truncated=1`（ADR-003 §2.3：用户取消一律置 1，不论是否已有 delta）；`asserts:{"db":[{"check":"message_part_truncated","args":{"part":"last","value":true}}],"socket":[{"expect":"stream_count_zero","within_ms":200}]}` | L3 |
+| CAN-003 | 取消后 10ms 内发起新请求 | 旧流进入 Terminal 后才发出新请求，无交错写同一 message；`asserts:{"db":[{"check":"row_count","args":{"table":"message","where":{"conversation_id":"$fixture.conversation","status":"streaming"},"count":1}}]}`（同一会话同时最多 1 条 streaming；`meta.json.fixtures.conversation` 必须在用例前建好） | L3 |
 | CAN-004 | 取消后检查连接池 | `asserts:{"socket":[{"expect":"stream_count_zero","within_ms":200}]}`；另记 trace 断言：OkHttp `EventListener.callEnd` 与 SocketsHttpHandler 连接计数各触发一次 | L3 |
 
 ## 9. 渲染模型（RENDER，15）
@@ -150,7 +151,7 @@
 | --- | --- | --- | --- |
 | EXPORT-001 | 1000 组随机会话（生成器 seed 固定）往返 | 两次导出 `data` 逐字段相同（§notes.2） | L3 |
 | EXPORT-002 | 含分支树、6 条附件引用、用量记录、思考内容 | 同上；附件元数据与引用关系完整 | L3 |
-| EXPORT-003 | 恶意文件：40 层嵌套、`local_path:"../../etc/passwd"`、单字段 30MB | 三种都被拒绝并给出 JSON Pointer 路径；`asserts:{"db":[{"check":"no_rows","args":{"table":"conversation","where":{"origin_device":"import"}}}]}`（导入整体回滚，无残留） | L3 |
+| EXPORT-003 | 恶意文件：40 层嵌套、`local_path:"../../etc/passwd"`、单字段 30MB | 三种都被拒绝并给出 JSON Pointer 路径；`asserts:{"db":[{"check":"row_count","args":{"table":"conversation","where":{},"count":0}},{"check":"row_count","args":{"table":"message","where":{},"count":0}}]}`（用例在空库上跑；空 `where` = 全表，计数 0 证明整体回滚无残留） | L3 |
 | EXPORT-004 | `format_version: 2` | `IMPORT_UNSUPPORTED_VERSION`，不尝试部分导入 | L3 |
 
 ## 10.5 不变量覆盖表（I1..I12 → 用例）

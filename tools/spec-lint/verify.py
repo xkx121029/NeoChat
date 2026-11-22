@@ -133,12 +133,65 @@ def check_ranges(con, defs):
                     out.append('%s: DDL "=0 OR >=%d" 未在 schema 表达为 oneOf' % (col, lo))
     return out
 
+
+DEFAULTS_DOC = io.open('spec/schema/defaults.md', encoding='utf-8').read()
+
+def _table_blocks(sql):
+    """把 v1.sql 切成 {表名: 该表 DDL 文本}，避免同名列跨表误判。"""
+    out, cur, buf = {}, None, []
+    for line in sql.split('\n'):
+        m = re.match(r'CREATE TABLE (\w+)', line)
+        if m:
+            if cur: out[cur] = '\n'.join(buf)
+            cur, buf = m.group(1), [line]
+        elif cur:
+            buf.append(line)
+    if cur: out[cur] = '\n'.join(buf)
+    return out
+
+def check_enums(con, defs):
+    """TEXT 列的 CHECK (x IN (...)) 必须与导出 schema 的 enum 集合相等。"""
+    out = []
+    blocks = _table_blocks(SQL)
+    for tbl, df in MAP.items():
+        block = blocks.get(tbl)
+        if not block: continue
+        props = defs[df]['properties']
+        for m in re.finditer(r"CHECK \(\s*(\w+)\s+IN\s*\(([^)]*)\)\s*\)", block):
+            col, vals = m.group(1), m.group(2)
+            parsed = re.findall(r"'([^']*)'", vals)
+            if not parsed: continue                      # 数值型 (0,1) 不比对
+            if col not in props or 'enum' not in props[col]: continue
+            senum = [v for v in props[col]['enum'] if v is not None]
+            if set(senum) != set(parsed):
+                out.append('%s.%s: DDL IN %s vs schema enum %s' % (tbl, col, sorted(parsed), sorted(senum)))
+    return out
+
+def check_defaults(con, defs, doc=None):
+    """defaults.md 的每一行必须等于 DDL 的 DEFAULT，且双向覆盖。"""
+    doc = DEFAULTS_DOC if doc is None else doc
+    declared = {}
+    for t, c, v in re.findall(r'^\| (\w+) \| (\w+) \| `([^`]*)` \|$', doc, re.M):
+        declared[(t, c)] = v
+    actual = {}
+    for tbl, block in _table_blocks(SQL).items():
+        for line in block.split('\n'):
+            for m in re.finditer(r"(\w+)\s+(?:INTEGER|TEXT|REAL)[^,\n]*?DEFAULT\s+('?[\w.\-]+'?)", line):
+                actual[(tbl, m.group(1))] = m.group(2).strip("'")
+    out = []
+    for k in sorted(set(declared) | set(actual)):
+        if declared.get(k) != actual.get(k):
+            out.append('%s.%s: defaults.md=%s DDL=%s' % (k[0], k[1], declared.get(k), actual.get(k)))
+    return out
+
 CHECKS = [('DDL 列都在导出 properties', check_missing_props),
           ('NOT NULL 都在 required', check_missing_required),
           ('required 无幻影列', check_phantom_required),
           ('类型对齐', check_types),
           ('可空性双向对齐', check_nullability),
-          ('CHECK 范围对齐', check_ranges)]
+          ('CHECK 范围对齐', check_ranges),
+          ('CHECK 枚举对齐', check_enums),
+          ('DEFAULT 与 defaults.md 对齐', check_defaults)]
 
 # ---------------- 1) 真实库：必须全空 ----------------
 con = sqlite3.connect(':memory:'); con.executescript(SQL)
@@ -168,7 +221,12 @@ proofs.append(('可空性错', check_nullability, mutated(m4)))
 # 2e 范围错：first_byte 的 minimum 改成 1
 def m5(d): d['provider']['properties']['first_byte_timeout_ms']['minimum'] = 1
 proofs.append(('范围错', check_ranges, mutated(m5)))
-# 2f DDL 多一列：ALTER TABLE 加列
+# 2f 枚举漂移：给 provider.protocol 的 schema enum 加一个 DDL 没有的值
+def m6(d): d['provider']['properties']['protocol']['enum'].append('bedrock')
+proofs.append(('枚举漂移', check_enums, mutated(m6)))
+# 2g 默认值漂移：改 defaults.md 里的一个数（模拟只改文档不同步 DDL）
+proofs.append(('默认值漂移', 'defaults', DEFAULTS_DOC.replace('| provider | concurrency_limit | `4` |', '| provider | concurrency_limit | `8` |')))
+# 2h DDL 多一列：ALTER TABLE 加列
 con_mut = sqlite3.connect(':memory:'); con_mut.executescript(SQL)
 con_mut.execute('ALTER TABLE provider ADD COLUMN selftest_col INTEGER NOT NULL DEFAULT 0')
 proofs.append(('DDL 多列', check_missing_props, DEFS))
@@ -176,6 +234,8 @@ proofs.append(('DDL 多列', check_missing_props, DEFS))
 for label, fn, defs in proofs:
     if label == 'DDL 多列':
         problems = fn(con_mut, defs)
+    elif fn == 'defaults':
+        problems = check_defaults(con, DEFS, defs)
     else:
         problems = fn(con, defs)
     ok('自证[%s] 能被检出' % label) if problems else bad('自证[%s] 失败：检查对该缺陷不敏感' % label)

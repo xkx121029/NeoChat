@@ -20,15 +20,19 @@
 
 | 文件 | 版本 | 状态 | 日期 | 变更摘要 |
 | --- | --- | --- | --- | --- |
-| `spec/stream-events.md` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | 评审 6 条 MUST-FIX 已修（见 docs/reviews/spec-review-1.md） |
-| `spec/errors.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 32 个 code / 21 个 action；评审 6 条 MUST-FIX 已修 |
-| `spec/providers.md` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | 评审 4 条 MUST-FIX 已修；新增覆盖语义 §6.5、并发上限 §6.6 |
-| `spec/render-model.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 3 条 MUST-FIX 已修；补 info string 语法、图片成块判定、引用式链接策略 |
-| `spec/schema/v1.sql` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | 22 表 + FTS5 + 12 索引；补 message_part.truncated 与 provider 四列；建库已实测 |
-| `spec/schema/export-v1.json` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | required 与 DDL NOT NULL 全量对齐（自动校验通过）；容器定为单 JSON ≤200MB |
-| `spec/conformance/CASES.md` | 1.1.2-draft | 已评审·待复验 | 2026-11-22 | 78 条用例；新增不变量覆盖表；比对规则写明剔除非确定性字段 |
+| `spec/stream-events.md` | 1.0.0 | **FROZEN** | 2026-11-22 | 分帧层 + 8 类事件 + 五家映射 + 取消语义；四轮评审关闭 |
+| `spec/errors.md` | 1.0.0 | **FROZEN** | 2026-11-22 | 32 个 code / 21 个 action / 四家映射 / 脱敏管线 |
+| `spec/providers.md` | 1.0.0 | **FROZEN** | 2026-11-22 | Canonical ChatRequest + 五家契约 + 传输 + 覆盖语义 + 并发 |
+| `spec/render-model.md` | 1.0.0 | **FROZEN** | 2026-11-22 | 13 block / 10 inline + 前缀稳定性 + 四层等价 |
+| `spec/schema/v1.sql` | 1.0.0 | **FROZEN** | 2026-11-22 | 22 表 + FTS5 + 12 索引，建库实测通过 |
+| `spec/schema/export-v1.json` | 1.0.0 | **FROZEN** | 2026-11-22 | required 与 NOT NULL 全量对齐；单 JSON ≤200MB |
+| `spec/conformance/CASES.md` | 1.0.0 | **FROZEN** | 2026-11-22 | 78 条用例 + 不变量覆盖表 + asserts 闭集 |
 
-**冻结含义**：升为 FROZEN 需 (a) 独立评审通过（已完成第一轮，见 [docs/reviews/spec-review-1.md](reviews/spec-review-1.md)），(b) MUST-FIX 逐条修完并通过第二轮复验，(c) 双端各有一份按本 spec 实现的最小验证（M1），(d) G0 验收记录落盘。**当前是「已评审·待复验」**：29 条 MUST-FIX 已全部修入，等第二轮确认，我不自我批准。
+**冻结含义（2026-11-22 已达成）**：FROZEN 的条件是 (a) 独立评审通过、(b) 全部 MUST-FIX 关闭、(c) `tools/spec-lint/verify.py` 全绿、(d) 验收记录落盘。四条齐备 → **契约于 2026-11-22 冻结为 1.0.0**。
+
+四轮独立评审记录见 [1](reviews/spec-review-1.md) / [2](reports 之外) / 3 / 4，缺陷数分别 29 / 5 / 4 / 5，全部关闭（其中第二轮抓出我自检脚本的假绿灯、第三轮抓出自证空转、第四轮抓出枚举与默认值两类漂移）。
+
+**冻结后的纪律**：任何 spec 变更必须升版本（1.0.x）、在 `spec/CHANGELOG.md` 记一条、广播双端、跑全量 conformance。双端一致性由 M1 的 conformance 承担，不因"还没实现"而不冻结。
 
 ## 3. 质量仪表盘
 

@@ -1,7 +1,7 @@
 # spec/providers.md — Provider 契约
 
-- 版本：**1.0.0-draft.5**
-- 状态：DRAFT（待独立评审）
+- 版本：**1.0.0**
+- 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：协议层（双端）、模型管理、能力矩阵、传输层
 
@@ -30,7 +30,8 @@ ProviderConfig {
   extra_headers: map<string,string>,
   extra_query: map<string,string>,
   extra_body_json?,               // 逃生舱：原样合并进请求体顶层
-  pass_through: bool              // 跳过响应校验，只做最小解析（风险表里的"raw 模式"）
+  pass_through: bool,             // 跳过响应校验，只做最小解析（风险表里的"raw 模式"）
+  cumulative_stream: bool         // 端点发送累积文本（对应 provider.cumulative_stream，见 stream-events §4.1）
 }
 ```
 
@@ -245,7 +246,8 @@ v1 MUST NOT 发送任何可识别用户的字段。`extra_body_json` 可传 `pro
 `conversation.settings_json` 与 `agent_profile.sampling_json` 都是对 canonical `sampling` 与 `reasoning` 的**逐字段覆盖**，不是整体替换：
 
 1. 取值优先级（高→低）：会话 `settings_json` → Agent `sampling_json` → provider 默认（不发送）。
-   **没有"模型元数据默认"这一层**：`model` 表只存能力与价格，不存采样默认值。不要为它造一个不存在的数据源。
+   **采样/推理参数没有"模型元数据默认"这一层**：`model` 表不存 `temperature`/`top_p` 之类的默认值，不要为它造一个不存在的数据源。
+   注意与 §3.1 区分：协议**必填**字段（如 Anthropic 的 `max_tokens`）在用户没设时取 `model.max_output`，这是协议要求而非优先级层，不参与上面三点回退，也不会与"不发送"冲突——该字段本来就必须发。
 2. 每层每个键是**三态**，不是两态：
    - 键不存在 → 继续向下回退；
    - 值为 `null` → **停止回退，最终不发送该字段**（用户显式取消）；
@@ -262,8 +264,8 @@ v1 MUST NOT 发送任何可识别用户的字段。`extra_body_json` 可传 `pro
 
 ## 6.6 并发上限
 
-- 全局上限存 `app_setting` 键 `net.max_concurrent_streams`，默认 4，上限 16。
-- 单 provider 上限存 `provider.concurrency_limit`（默认 4），是全局上限之内的子配额：实际并发 = min(全局剩余, provider 剩余)。
+- 全局上限存 `app_setting` 键 `net.max_concurrent_streams`，上限 16；**默认值只写在 `spec/schema/defaults.md`**，本文件不复述数字（复述就会漂移）。
+- 单 provider 上限存 `provider.concurrency_limit`，是全局上限之内的子配额：实际并发 = min(全局剩余, provider 剩余)。
 - 单 Key 限流桶在 M2 引入，桶参数存 `provider_key.rpm_limit` / `tpm_limit` / `daily_request_limit`。
 
 ## 7. 传输层契约
