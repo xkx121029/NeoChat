@@ -1,0 +1,48 @@
+name: android
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test-arch:
+    name: detekt / 单测 / 架构测试 / lint / 包体基线
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: detekt + 单测 + 架构测试
+        run: ./gradlew detekt test --no-daemon --console=plain --stacktrace
+
+      - name: lint（warningsAsErrors）
+        run: ./gradlew :androidApp:app:lint --no-daemon --console=plain
+
+      - name: assembleDebug（空工程可打包）
+        run: ./gradlew :androidApp:app:assembleDebug --no-daemon --console=plain
+
+      - name: 记录 APK 包体基线
+        run: python3 ci/record_size.py --platform android --path androidApp/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: 上传包体基线与报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-baseline
+          path: |
+            ci/baselines/android.json
+            androidApp/app/build/outputs/apk/debug/app-debug.apk
+            androidApp/domain/build/reports/detekt/
+            androidApp/app/build/reports/detekt/
+            androidApp/domain/build/reports/tests/

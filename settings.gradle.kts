@@ -24,3 +24,4 @@ rootProject.name = "neochat"
 
 include(":androidApp:app")
 include(":androidApp:domain")
+include(":androidApp:protocol")

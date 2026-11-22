@@ -1,0 +1,38 @@
+name: spec-lint
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: 契约一致性 / schema / 许可证
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 契约自检（八项检查 + 八项自证）
+        run: python3 tools/spec-lint/verify.py
+
+      - name: 契约自检负向用例自证
+        run: python3 tools/spec-lint/verify.py 2>&1 | grep -q "ALL PASS"
+
+      - name: schema 一致性（v1.sql vs 应用侧快照）
+        run: python3 tools/schema-diff/diff_schema.py --sql spec/schema/v1.sql --json androidApp/schema/schema-v1.json
+
+      - name: schema-diff 自证（改一列类型必须被检出）
+        run: python3 tools/schema-diff/tests/test_diff.py
+
+      - name: 许可证白名单/黑名单
+        run: python3 ci/license_check.py
+
+      - name: 许可证检查自证（GPL/AGPL/未知/灰区必须被拒）
+        run: python3 ci/tests/test_license_check.py

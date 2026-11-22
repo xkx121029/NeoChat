@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windowsApp", "windowsApp", "{F3BA2986-D571-4CBC-8A44-029BEF43608F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoChat.Domain", "windowsApp\NeoChat.Domain\NeoChat.Domain.csproj", "{40EEF808-C14B-43D9-959C-954F20FC76EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoChat.Domain.Tests", "windowsApp\NeoChat.Domain.Tests\NeoChat.Domain.Tests.csproj", "{B3A91610-0B53-406E-803C-F20526DB99C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoChat.Windows", "windowsApp\NeoChat.Windows\NeoChat.Windows.csproj", "{5AC07D13-5854-4C88-95B0-6A99140F8A48}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{40EEF808-C14B-43D9-959C-954F20FC76EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40EEF808-C14B-43D9-959C-954F20FC76EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40EEF808-C14B-43D9-959C-954F20FC76EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40EEF808-C14B-43D9-959C-954F20FC76EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3A91610-0B53-406E-803C-F20526DB99C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3A91610-0B53-406E-803C-F20526DB99C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3A91610-0B53-406E-803C-F20526DB99C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3A91610-0B53-406E-803C-F20526DB99C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5AC07D13-5854-4C88-95B0-6A99140F8A48}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{5AC07D13-5854-4C88-95B0-6A99140F8A48}.Debug|Any CPU.Build.0 = Debug|x64
+		{5AC07D13-5854-4C88-95B0-6A99140F8A48}.Release|Any CPU.ActiveCfg = Release|x64
+		{5AC07D13-5854-4C88-95B0-6A99140F8A48}.Release|Any CPU.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{40EEF808-C14B-43D9-959C-954F20FC76EF} = {F3BA2986-D571-4CBC-8A44-029BEF43608F}
+		{B3A91610-0B53-406E-803C-F20526DB99C7} = {F3BA2986-D571-4CBC-8A44-029BEF43608F}
+		{5AC07D13-5854-4C88-95B0-6A99140F8A48} = {F3BA2986-D571-4CBC-8A44-029BEF43608F}
+	EndGlobalSection
+EndGlobal

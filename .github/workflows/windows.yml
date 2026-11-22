@@ -1,0 +1,42 @@
+name: windows
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-arch:
+    name: dotnet build /warnaserror + 单测 + 架构测试 + 包体基线
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: 恢复
+        run: dotnet restore NeoChat.sln
+
+      - name: 构建（零警告）
+        run: dotnet build NeoChat.sln --configuration Release --no-restore /warnaserror
+
+      - name: 单测 + 架构测试
+        run: dotnet test NeoChat.sln --configuration Release --no-build --logger "console;verbosity=normal"
+
+      - name: 发布并以发布目录记录包体基线
+        run: |
+          dotnet publish windowsApp/NeoChat.Windows/NeoChat.Windows.csproj --configuration Release --runtime win-x64 --self-contained false --output out/win
+          python ci/record_size.py --platform windows --path out/win
+
+      - name: 上传包体基线与报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-baseline
+          path: |
+            ci/baselines/windows.json
+            out/win

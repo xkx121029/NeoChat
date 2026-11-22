@@ -22,6 +22,3 @@ style:
     max: 3
   ForbiddenComment:
     active: false
-
-formatting:
-  active: false
