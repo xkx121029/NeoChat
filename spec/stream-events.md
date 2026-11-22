@@ -1,6 +1,6 @@
 # spec/stream-events.md — 流式事件契约
 
-- 版本：**1.0.0**
+- 版本：**1.0.1**
 - 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：Android 与 Windows 的传输层、协议层、状态层；conformance runner
@@ -52,7 +52,7 @@ read_idle 触发 → `failed(NET_READ_TIMEOUT)`。注意：注释行 MUST 重置
 
 ### 2.3 结束语义
 
-- 正常结束：收到 provider 的终止标记（OpenAI `[DONE]`；Anthropic `message_stop`；Responses `response.completed` 或 `response.incomplete`（后者表示被 `max_output_tokens` 截断，仍按 `done{length}` 结束）；Gemini 数组结束或 `alt=sse` 流 EOF）→ 必须已发出且仅发出一个终止事件。
+- 正常结束：收到 provider 的终止标记（OpenAI `[DONE]`。**终止标记存在即 `done`**：`[DONE]` 已出现但整条流从未给出 `finish_reason` 时，`finish_reason` 取 `stop`，这不属于 §2.3 的 `PARSE_INCOMPLETE`——那条只适用于**既无终止标记也无 `finish_reason`** 的情况；；Anthropic `message_stop`；Responses `response.completed` 或 `response.incomplete`（后者表示被 `max_output_tokens` 截断，仍按 `done{length}` 结束）；Gemini 数组结束或 `alt=sse` 流 EOF）→ 必须已发出且仅发出一个终止事件。
 - EOF 但无终止标记：
   - 若已收到 `finish_reason`/`stop_reason`/`finishReason` → 补发 `done`（宽容路径，常见于兼容端点省略 `[DONE]`）。
   - 否则 → `failed(PARSE_INCOMPLETE)`，携带 `partial_text_length`。
@@ -70,6 +70,8 @@ read_idle 触发 → `failed(NET_READ_TIMEOUT)`。注意：注释行 MUST 重置
 ### 3.1 线格式
 
 JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字段名短小写。`seq` 从 0 单调递增，每流独立，重复即违约。
+
+**键序不参与判据**：实现可任意排列事件内的键，比对前由 runner 统一按字典序规范化（`CASES.md` §0）。因此"键序不同"不是缺陷，`events.jsonl` 的 sha256 也不受它影响。
 
 ```jsonl
 {"t":"delta","seq":0,"text":"你"}
@@ -110,7 +112,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 | I4 | `usage` 至多一个，且若存在必在终止事件之前 |
 | I5 | 所有 `tool_call_end` 必在 `done` 之前；每个打开过的 index 恰好一个 `tool_call_end`；`done{finish_reason:"tool_calls"}` 意味着至少一个 index 曾打开 |
 | I6 | `delta.text` 与 `reasoning_delta.text` 均非空字符串（空串 MUST NOT 发射） |
-| I7 | 每个 index 的**首个** `tool_call_delta` MUST 携带 `id` 与 `name`（`id` 缺失时适配器必须合成 `call_<index>`）；后续增量 MUST NOT 重复携带 `name` |
+| I7 | 每个 index 的**首个** `tool_call_delta` MUST 携带 `id` 与 `name`（`id` 缺失时适配器必须合成 `call_<index>`）；若该首片同时带了 `args`，MUST 原样发送，**不得因为"首片只放 id/name"的误读而丢弃参数**；后续增量 MUST NOT 重复携带 `name` |
 | I8 | 事件流与网络帧解耦：一个 provider 帧可产生 0..N 个事件；一个事件 MUST NOT 跨两个 provider 帧被拆分（表现为半条 JSON）。**唯一例外**：`usage` 允许由多帧合并而成（Anthropic 的 input 在 `message_start`、output 在 `message_delta`），合并后仍只发一条 |
 | I9 | 心跳/注释/空帧 MUST NOT 产生任何事件 |
 | I10 | 用户取消 MUST 以 `done{finish_reason:"aborted_user"}` 结束，MUST NOT 为 `failed` |
@@ -149,6 +151,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 
 - 仅当 conformance 的 `meta.duplicate=true`，或该 provider 的 `provider.cumulative_stream=1` 时（真实列，见 `v1.sql`；不是 `extra_json` 里的私货），适配器才 MUST 用 `emitted_prefix_len` 做前缀差集；
 - 其余情况 MUST 原样发射，**禁止**按内容去重（会吞掉真实内容）。
+- 累积端点若新文本**不以已发前缀开头**（说明是重写而非追加），MUST 丢弃该帧并记 trace `cumulative_rewrite_ignored`，不得重置已发内容、不得回退 UI（Gemini 同规则见 §4.4）。
 
 `finish_reason` 映射（只对**出现过**的取值映射）：`stop`→`stop`；`length`→`length`；`tool_calls`/`function_call`→`tool_calls`；`content_filter`→`content_filter`。**字段缺失时不得映射为 `stop`**：EOF 一律回到 §2.3 判定（从未见过 `finish_reason` → `failed(PARSE_INCOMPLETE)`）。
 

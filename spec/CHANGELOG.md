@@ -13,6 +13,7 @@
 | 1.0.0-draft.3 | 2026-11-22 | providers | 评审 must-fix：temperature/top_p 优先级；reasoning mode 与 budget↔effort 反向表；补 `first_byte_timeout_ms`/`total_timeout_ms`/`billing_url`/`status_url`；cache.breakpoints 不产生事件；新增 §6.5 覆盖语义与 §6.6 并发上限；Gemini key 只走头 | 双端协议层 + 模型管理 | 是 |
 | 1.0.0-draft.3 | 2026-11-22 | render-model | 评审 must-fix：深度超限降级为 `unknown`（`text` 不是 Block）；新增 §2.1 info string 语法、§2.2 图片成块判定、§2.3 引用式链接不解析；Inline 计数改 10；flags 增 has_list/has_footnote | 双端渲染 | 是 |
 | 1.0.0-draft.3 | 2026-11-22 | schema/v1.sql + export-v1.json + notes | 评审 must-fix：`message_part.truncated`；provider 四个新列；导出补 sync 三件与 `last_check_*`；`content_omitted` 进 schema；AAD 唯一定义 + PBKDF2 下限 600000；容器定为单 JSON ≤200MB；required 与 NOT NULL 全量对齐（自动校验通过） | 存储层 + 导出 | 是 |
+| 1.0.1 | 2026-11-23 | stream-events / errors | 实现反馈的五处歧义裁定：①事件键序不参与判据（runner 规范化）②首片 `tool_call_delta` 带 args 不得丢弃③`[DONE]` 存在即 done、缺 `finish_reason` 取 stop（与 §2.3 的 PARSE_INCOMPLETE 分界）④`hint` 示例改为首 4+尾 4⑤累积端点非前缀重写→丢弃并记 trace | 双端协议层 | 是 |
 | **1.0.0** | 2026-11-22 | 全部 | **契约冻结**。四轮独立评审：29 + 5 + 4 + 5 条缺陷全部关闭；`tools/spec-lint/verify.py` 八项检查 + 八项自证全绿。冻结后任何变更必须升版本、广播、双端适配、跑全量 conformance | 全部 | 是 |
 | 1.0.0-draft.6 | 2026-11-22 | providers | 第四轮 D3 残留：区分「协议必填字段的模型默认」（Anthropic `max_tokens` 取 `model.max_output`）与「用户层默认」；`ProviderConfig` 补 `cumulative_stream`；§6.6 不再复述默认值，指向 defaults 表 | 双端 | 是 |
 | 1.1.3-draft | 2026-11-22 | conformance/CASES | 第四轮 D5 残留：新增「标识符来源闭集」（字面量/`last`/`$fixture.*`）；CAN-002 去掉哨兵 row_count；CAN-003 改夹具；EXPORT-003 改空 where 全表计数；perf 断言定为 N=100/p50/丢预热 | QA | 是 |

@@ -1,6 +1,6 @@
 # spec/errors.md — 统一错误模型
 
-- 版本：**1.0.0**
+- 版本：**1.0.1**
 - 状态：**FROZEN**（2026-11-22；四轮独立评审关闭，见 docs/reviews/spec-review-1~4.md）
 - 起草日期：2026-11-22
 - 适用：双端协议层、传输层、状态层、错误页、诊断页、崩溃兜底
@@ -39,7 +39,7 @@
   "retryable": false,
   "retry_after_ms": null,
   "title_key": "errors.AUTH_INVALID_KEY.title",
-  "params": {"hint": "sk-…a1b2"},
+  "params": {"hint": "sk-a…a1b2"},
   "causes": ["errors.AUTH_INVALID_KEY.cause.revoked", "errors.AUTH_INVALID_KEY.cause.wrong_endpoint", "errors.AUTH_INVALID_KEY.cause.truncated_paste"],
   "actions": [{"a": "edit_provider"}, {"a": "copy_diagnostics"}],
   "raw": "{\"error\":{\"message\":\"Incorrect API key provided: sk-…a1b2\",\"type\":\"invalid_request_error\",\"code\":\"invalid_api_key\"}}",
