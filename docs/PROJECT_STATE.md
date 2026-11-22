@@ -67,6 +67,17 @@
 | 数据 | 导出导入往返字段差异 | 0 | 0 | 未测 | — | 属性测试 1000 组 | 无实现 |
 | 安全 | 密钥明文出现次数 | 0 | 0 | 未测 | — | `docs/security/scan` | 扫描器未建 |
 
+## 3.5 M0 出口条件（G0）进度
+
+| 项 | 状态 | 证据 |
+| --- | --- | --- |
+| 契约冻结 + 评审 | ✅ | 1.0.2 / 四轮评审 43 条关闭 |
+| conformance 样本与 runner | ✅ | 78 样本确定性可重生（tree sha256 e1ec4f2f…）；桩 54 pass / 0 fail / 24 skipped（原因分类） |
+| CI（lint/单测/架构/许可/schema-diff） | ⚠️ 文件就绪、未在真 runner 跑过 | 架构与 schema-diff 的**负向证明**已拿到原文；Android job 暂标 continue-on-error |
+| 基准框架（QE-003） | ❌ 未做 | 被"普通对话"优先级挤后 |
+| 密钥扫描器（QE-004）/ SBOM（QE-005） | ❌ 未做 | 同上 |
+| 工具链限制（记录在案） | — | 本机无 WinUI Appx 工具链（MSB4062）、无 Android SDK env、内存余量 <1.5GB、多 jam 抢 Gradle |
+
 ## 4. 进行中任务
 
 M0 任务单全部在 [docs/M0-TASKS.md](docs/M0-TASKS.md)。**无任务已下发给执行者**——等待质量三角拍板（D1）与远程仓库确认（D5）。

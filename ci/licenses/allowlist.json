@@ -1,8 +1,10 @@
 {
-  "format": "neochat-license-policy/1",
-  "allow": ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MPL-2.0", "Zlib"],
-  "deny": ["GPL-2.0", "GPL-2.0-only", "GPL-3.0", "GPL-3.0-only", "AGPL-3.0", "AGPL-3.0-only",
-           "LGPL-2.1", "LGPL-2.1-only", "LGPL-3.0", "LGPL-3.0-only", "SSPL-1.0"],
+  "format": "neochat-license-policy/2",
+  "source": "docs/security/LICENSE-POLICY.md + docs/decisions/ADR-004-license-agpl.md（2026-11-22 起，本仓库为 AGPL-3.0-or-later）",
+  "allow": ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Zlib", "Unlicense", "MPL-2.0"],
+  "copyleft_with_notice": ["LGPL-3.0", "LGPL-3.0-only", "LGPL-3.0-or-later", "GPL-3.0", "GPL-3.0-only",
+                           "GPL-3.0-or-later", "GPL-2.0-or-later", "AGPL-3.0", "AGPL-3.0-only", "AGPL-3.0-or-later"],
+  "deny": ["GPL-2.0-only", "SSPL-1.0", "BUSL-1.1"],
   "gray": ["EPL-1.0", "EPL-2.0", "CDDL-1.0", "CDDL-1.1"],
   "enforce_allowlist_scopes": ["runtime", "build"]
 }
