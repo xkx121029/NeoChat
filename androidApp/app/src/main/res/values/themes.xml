@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        窗口主题：只用来消掉冷启动时的白闪与 ActionBar。
+        windowBackground 取 DESIGN-SYSTEM L01（mistTop #EBF1FE）；Compose 首帧之后由 NeoChatTheme 接管。
+    -->
+    <style name="Theme.NeoChat" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#EBF1FE</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

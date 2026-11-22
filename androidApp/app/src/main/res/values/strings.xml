@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    文案键约定沿用 spec/errors.md §6：title 用 errors.<CODE>.title，
+    cause 与 action 优先取 errors.<CODE>.cause.<slug> / errors.<CODE>.action.<a>，
+    未定义时回落到共享键 errors.cause.<slug> / errors.action.<a>（本文件先只提供共享键）。
+    Android 资源名不允许点号，故键里的 "." 落成 "_"，由 ErrorCopy 做转换。
+    所有 errors_* 文案都是运行期按键查表（`getIdentifier`），lint 看不到静态引用，
+    因此逐个标了 `tools:ignore="UnusedResources"`；删条目时请同步删 spec/errors.md 的对应码。
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">NeoChat</string>
+
+    <string name="empty_greeting">今天想聊点什么</string>
+    <string name="empty_subtitle">说清目标，我来处理细节。</string>
+    <string name="empty_primary_action">开始新对话</string>
+    <string name="empty_hint">回答由你配置的模型生成，重要信息请自行核对。</string>
+    <string name="empty_suggestion_summarize">帮我总结这篇文章的要点</string>
+    <string name="empty_suggestion_debug">这段 Kotlin 报空指针，帮我定位</string>
+    <string name="empty_suggestion_rewrite">把下面这段话改得更简洁</string>
+    <string name="empty_suggestion_plan">列一个三天的学习计划</string>
+
+    <string name="composer_placeholder">发消息…</string>
+    <string name="composer_send">发送</string>
+    <string name="composer_stop">停止</string>
+    <string name="composer_char_count">%1$d 字</string>
+
+    <string name="phase_idle">就绪</string>
+    <string name="phase_connecting">连接中</string>
+    <string name="phase_streaming">正在回复</string>
+    <string name="phase_stopped">已停止</string>
+    <string name="phase_failed">回复失败</string>
+
+    <string name="message_interrupted">生成已中断</string>
+    <string name="thinking_live">正在思考</string>
+    <string name="thinking_done">思考过程</string>
+    <string name="thinking_expand">展开思考过程</string>
+    <string name="thinking_collapse">收起思考过程</string>
+
+    <string name="chat_new">新对话</string>
+    <string name="chat_title">普通对话</string>
+    <string name="chat_scroll_to_bottom">回到最新</string>
+    <string name="chat_model_settings">模型与连接</string>
+    <string name="chat_model_unset">未配置模型</string>
+
+    <string name="provider_title">模型与连接</string>
+    <string name="provider_base_url">Base URL</string>
+    <string name="provider_api_key">API Key</string>
+    <string name="provider_model">模型 ID</string>
+    <string name="provider_hint">密钥只保存在当前进程内存里，退出应用即清除。</string>
+    <string name="provider_save">保存</string>
+    <string name="provider_cancel">取消</string>
+
+    <string name="error_raw_title">原始响应（已脱敏）</string>
+    <string name="error_close">关闭</string>
+    <string name="error_action_unavailable">该操作在 M1 尚未实现：%1$s</string>
+    <string name="error_diagnostics_copied">诊断信息已复制</string>
+
+    <!-- errors.<CODE>.title（spec/errors.md §3） -->
+    <string name="errors_AUTH_INVALID_KEY_title" tools:ignore="UnusedResources">密钥无效或已被撤销</string>
+    <string name="errors_AUTH_INSUFFICIENT_QUOTA_title" tools:ignore="UnusedResources">账户余额或配额不足</string>
+    <string name="errors_RATE_LIMITED_title" tools:ignore="UnusedResources">请求太频繁，被限流</string>
+    <string name="errors_MODEL_NOT_FOUND_title" tools:ignore="UnusedResources">该模型在服务器上不存在</string>
+    <string name="errors_PARAM_INVALID_title" tools:ignore="UnusedResources">请求参数不被接受</string>
+    <string name="errors_CONTEXT_OVERFLOW_title" tools:ignore="UnusedResources">上下文长度超过模型上限</string>
+    <string name="errors_CONTENT_FILTERED_title" tools:ignore="UnusedResources">内容策略拦截了本次请求</string>
+    <string name="errors_SERVER_ERROR_title" tools:ignore="UnusedResources">服务器内部错误（{http_status}）</string>
+    <string name="errors_SERVER_OVERLOADED_title" tools:ignore="UnusedResources">服务器过载，暂时无法处理</string>
+    <string name="errors_ENDPOINT_NOT_FOUND_title" tools:ignore="UnusedResources">端点地址不存在（404）</string>
+    <string name="errors_UNKNOWN_PROVIDER_ERROR_title" tools:ignore="UnusedResources">Provider 返回了未识别的错误</string>
+    <string name="errors_NET_CONNECTION_RESET_title" tools:ignore="UnusedResources">连接被中途断开</string>
+    <string name="errors_NET_READ_TIMEOUT_title" tools:ignore="UnusedResources">服务器长时间没有返回数据</string>
+    <string name="errors_FIRST_BYTE_TIMEOUT_title" tools:ignore="UnusedResources">服务器迟迟没有开始响应</string>
+    <string name="errors_PARSE_SSE_INVALID_title" tools:ignore="UnusedResources">服务器返回的数据格式无法识别</string>
+    <string name="errors_PARSE_INCOMPLETE_title" tools:ignore="UnusedResources">回复在中途被截断</string>
+    <string name="errors_PARSE_EVENT_TOO_LARGE_title" tools:ignore="UnusedResources">单条流数据超出安全上限</string>
+    <string name="errors_INTERNAL_title" tools:ignore="UnusedResources">出现了未预期的内部错误</string>
+
+    <!-- 共享原因文案 errors.cause.<slug> -->
+    <string name="errors_cause_revoked" tools:ignore="UnusedResources">密钥被撤销或重置</string>
+    <string name="errors_cause_wrong_endpoint" tools:ignore="UnusedResources">密钥与端点不匹配</string>
+    <string name="errors_cause_truncated_paste" tools:ignore="UnusedResources">粘贴时被截断或含空格</string>
+    <string name="errors_cause_balance" tools:ignore="UnusedResources">预付费余额已用尽</string>
+    <string name="errors_cause_free_tier" tools:ignore="UnusedResources">免费额度已过期</string>
+    <string name="errors_cause_org_quota" tools:ignore="UnusedResources">组织配额被管理员限制</string>
+    <string name="errors_cause_rpm" tools:ignore="UnusedResources">每分钟请求数超限</string>
+    <string name="errors_cause_concurrency" tools:ignore="UnusedResources">并发请求过多</string>
+    <string name="errors_cause_daily_quota" tools:ignore="UnusedResources">该 Key 的每日额度用尽</string>
+    <string name="errors_cause_retired" tools:ignore="UnusedResources">模型已下线或改名</string>
+    <string name="errors_cause_typo" tools:ignore="UnusedResources">模型 ID 拼写错误</string>
+    <string name="errors_cause_endpoint_lacks_model" tools:ignore="UnusedResources">该地址不提供此模型</string>
+    <string name="errors_cause_unsupported" tools:ignore="UnusedResources">模型不支持该采样参数</string>
+    <string name="errors_cause_out_of_range" tools:ignore="UnusedResources">数值越界，例如 temperature 超过 2</string>
+    <string name="errors_cause_mixed" tools:ignore="UnusedResources">合并了不同协议所需的字段</string>
+    <string name="errors_cause_history" tools:ignore="UnusedResources">历史消息太多</string>
+    <string name="errors_cause_attachment" tools:ignore="UnusedResources">附件太大</string>
+    <string name="errors_cause_window" tools:ignore="UnusedResources">模型窗口被误设</string>
+    <string name="errors_cause_input" tools:ignore="UnusedResources">输入触发了服务商策略</string>
+    <string name="errors_cause_output" tools:ignore="UnusedResources">输出被中途拦截</string>
+    <string name="errors_cause_region" tools:ignore="UnusedResources">账户所在区域受限</string>
+    <string name="errors_cause_fault" tools:ignore="UnusedResources">服务商侧故障</string>
+    <string name="errors_cause_restart" tools:ignore="UnusedResources">模型正在重启</string>
+    <string name="errors_cause_queue" tools:ignore="UnusedResources">模型排队或过载</string>
+    <string name="errors_cause_degraded" tools:ignore="UnusedResources">账户被降级</string>
+    <string name="errors_cause_capacity" tools:ignore="UnusedResources">区域容量不足</string>
+    <string name="errors_cause_v1" tools:ignore="UnusedResources">Base URL 缺少或多了 /v1</string>
+    <string name="errors_cause_protocol" tools:ignore="UnusedResources">协议选错（OpenAI 兼容 vs Anthropic）</string>
+    <string name="errors_cause_path" tools:ignore="UnusedResources">该 Path 需要自定义</string>
+    <string name="errors_cause_format" tools:ignore="UnusedResources">服务商改了错误格式</string>
+    <string name="errors_cause_proxy" tools:ignore="UnusedResources">代理或防火墙中断</string>
+    <string name="errors_cause_relay" tools:ignore="UnusedResources">响应被代理改写</string>
+    <string name="errors_cause_switch" tools:ignore="UnusedResources">网络切换（Wi-Fi 与移动网络）</string>
+    <string name="errors_cause_server" tools:ignore="UnusedResources">服务端断开长连接</string>
+    <string name="errors_cause_buffer" tools:ignore="UnusedResources">代理缓冲了响应</string>
+    <string name="errors_cause_large" tools:ignore="UnusedResources">请求过大</string>
+    <string name="errors_cause_non_stream" tools:ignore="UnusedResources">Base URL 指向了非流式端点</string>
+    <string name="errors_cause_html_page" tools:ignore="UnusedResources">代理注入了 HTML 错误页</string>
+    <string name="errors_cause_json_error" tools:ignore="UnusedResources">该端点返回的是 JSON 错误</string>
+    <string name="errors_cause_network" tools:ignore="UnusedResources">网络中断</string>
+    <string name="errors_cause_huge" tools:ignore="UnusedResources">端点返回了非流式大响应</string>
+    <string name="errors_cause_duplicated" tools:ignore="UnusedResources">代理重复注入数据</string>
+    <string name="errors_cause_defect" tools:ignore="UnusedResources">应用内部缺陷</string>
+    <string name="errors_cause_state" tools:ignore="UnusedResources">数据状态不一致</string>
+
+    <!-- 共享操作文案 errors.action.<a>（spec/errors.md §4：按钮 ≤ 6 汉字、动词开头） -->
+    <string name="errors_action_retry" tools:ignore="UnusedResources">重试</string>
+    <string name="errors_action_retry_after" tools:ignore="UnusedResources">立即重试</string>
+    <string name="errors_action_edit_provider" tools:ignore="UnusedResources">修改配置</string>
+    <string name="errors_action_open_provider_settings" tools:ignore="UnusedResources">配置列表</string>
+    <string name="errors_action_manage_keys" tools:ignore="UnusedResources">密钥管理</string>
+    <string name="errors_action_check_proxy" tools:ignore="UnusedResources">检查代理</string>
+    <string name="errors_action_check_base_url" tools:ignore="UnusedResources">检查地址</string>
+    <string name="errors_action_switch_model" tools:ignore="UnusedResources">切换模型</string>
+    <string name="errors_action_reduce_context" tools:ignore="UnusedResources">精简上下文</string>
+    <string name="errors_action_top_up" tools:ignore="UnusedResources">去充值</string>
+    <string name="errors_action_open_docs" tools:ignore="UnusedResources">查看帮助</string>
+    <string name="errors_action_view_raw" tools:ignore="UnusedResources">查看原文</string>
+    <string name="errors_action_copy_diagnostics" tools:ignore="UnusedResources">复制诊断</string>
+    <string name="errors_action_retry_tool" tools:ignore="UnusedResources">重试工具</string>
+    <string name="errors_action_db_check" tools:ignore="UnusedResources">检查数据</string>
+    <string name="errors_action_open_network_settings" tools:ignore="UnusedResources">网络设置</string>
+    <string name="errors_action_refresh_models" tools:ignore="UnusedResources">刷新模型</string>
+    <string name="errors_action_clean_storage" tools:ignore="UnusedResources">清理存储</string>
+    <string name="errors_action_view_capability_matrix" tools:ignore="UnusedResources">能力矩阵</string>
+    <string name="errors_action_view_service_status" tools:ignore="UnusedResources">服务状态</string>
+    <string name="errors_action_open_mcp_settings" tools:ignore="UnusedResources">MCP 设置</string>
+</resources>
