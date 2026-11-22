@@ -1,6 +1,6 @@
 # spec/stream-events.md — 流式事件契约
 
-- 版本：**1.0.0-draft.4**
+- 版本：**1.0.0-draft.5**
 - 状态：DRAFT（待独立评审；按准则 7 我不批准自己写的 spec）
 - 起草日期：2026-11-22
 - 适用：Android 与 Windows 的传输层、协议层、状态层；conformance runner
@@ -147,7 +147,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 
 **重复 chunk 的去重判据**：OpenAI 系端点是**增量**语义，`delta.content` 相同不代表重复（模型可以合法地连发两个相同 token）。因此：
 
-- 仅当 conformance 的 `meta.duplicate=true`，或该 provider 被标记为 `cumulative_stream=true`（存 `provider.extra_json`）时，适配器才 MUST 用 `emitted_prefix_len` 做前缀差集；
+- 仅当 conformance 的 `meta.duplicate=true`，或该 provider 的 `provider.cumulative_stream=1` 时（真实列，见 `v1.sql`；不是 `extra_json` 里的私货），适配器才 MUST 用 `emitted_prefix_len` 做前缀差集；
 - 其余情况 MUST 原样发射，**禁止**按内容去重（会吞掉真实内容）。
 
 `finish_reason` 映射（只对**出现过**的取值映射）：`stop`→`stop`；`length`→`length`；`tool_calls`/`function_call`→`tool_calls`；`content_filter`→`content_filter`。**字段缺失时不得映射为 `stop`**：EOF 一律回到 §2.3 判定（从未见过 `finish_reason` → `failed(PARSE_INCOMPLETE)`）。

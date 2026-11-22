@@ -20,13 +20,13 @@
 
 | 文件 | 版本 | 状态 | 日期 | 变更摘要 |
 | --- | --- | --- | --- | --- |
-| `spec/stream-events.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 评审 6 条 MUST-FIX 已修（见 docs/reviews/spec-review-1.md） |
+| `spec/stream-events.md` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | 评审 6 条 MUST-FIX 已修（见 docs/reviews/spec-review-1.md） |
 | `spec/errors.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 32 个 code / 21 个 action；评审 6 条 MUST-FIX 已修 |
-| `spec/providers.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 评审 4 条 MUST-FIX 已修；新增覆盖语义 §6.5、并发上限 §6.6 |
+| `spec/providers.md` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | 评审 4 条 MUST-FIX 已修；新增覆盖语义 §6.5、并发上限 §6.6 |
 | `spec/render-model.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 3 条 MUST-FIX 已修；补 info string 语法、图片成块判定、引用式链接策略 |
-| `spec/schema/v1.sql` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 22 表 + FTS5 + 12 索引；补 message_part.truncated 与 provider 四列；建库已实测 |
-| `spec/schema/export-v1.json` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | required 与 DDL NOT NULL 全量对齐（自动校验通过）；容器定为单 JSON ≤200MB |
-| `spec/conformance/CASES.md` | 1.1.1-draft | 已评审·待复验 | 2026-11-22 | 78 条用例；新增不变量覆盖表；比对规则写明剔除非确定性字段 |
+| `spec/schema/v1.sql` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | 22 表 + FTS5 + 12 索引；补 message_part.truncated 与 provider 四列；建库已实测 |
+| `spec/schema/export-v1.json` | 1.0.0-draft.5 | 已评审·待复验 | 2026-11-22 | required 与 DDL NOT NULL 全量对齐（自动校验通过）；容器定为单 JSON ≤200MB |
+| `spec/conformance/CASES.md` | 1.1.2-draft | 已评审·待复验 | 2026-11-22 | 78 条用例；新增不变量覆盖表；比对规则写明剔除非确定性字段 |
 
 **冻结含义**：升为 FROZEN 需 (a) 独立评审通过（已完成第一轮，见 [docs/reviews/spec-review-1.md](reviews/spec-review-1.md)），(b) MUST-FIX 逐条修完并通过第二轮复验，(c) 双端各有一份按本 spec 实现的最小验证（M1），(d) G0 验收记录落盘。**当前是「已评审·待复验」**：29 条 MUST-FIX 已全部修入，等第二轮确认，我不自我批准。
 

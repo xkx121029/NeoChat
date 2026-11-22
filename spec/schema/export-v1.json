@@ -375,7 +375,8 @@
         "pass_through",
         "sort_order",
         "first_byte_timeout_ms",
-        "total_timeout_ms"
+        "total_timeout_ms",
+        "cumulative_stream"
       ],
       "properties": {
         "id": {
@@ -498,9 +499,16 @@
           "maximum": 300000
         },
         "total_timeout_ms": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "0 = 不限"
+          "oneOf": [
+            {
+              "const": 0
+            },
+            {
+              "type": "integer",
+              "minimum": 30000
+            }
+          ],
+          "description": "0 = 不限；否则 ≥30000，与 DDL CHECK (=0 OR >=30000) 一致"
         },
         "billing_url": {
           "type": [
@@ -517,6 +525,10 @@
           ],
           "maxLength": 2048,
           "description": "NULL 表示 view_service_status 不出现"
+        },
+        "cumulative_stream": {
+          "type": "boolean",
+          "description": "端点为累积型文本流"
         }
       }
     },
@@ -1763,7 +1775,8 @@
       "additionalProperties": false,
       "required": [
         "key",
-        "value_json"
+        "value_json",
+        "updated_at"
       ],
       "properties": {
         "key": {

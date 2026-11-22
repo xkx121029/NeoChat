@@ -61,6 +61,7 @@ CREATE TABLE provider (
   extra_query_json      TEXT,
   extra_body_json       TEXT,
   pass_through          INTEGER NOT NULL DEFAULT 0 CHECK (pass_through IN (0,1)),
+  cumulative_stream     INTEGER NOT NULL DEFAULT 0 CHECK (cumulative_stream IN (0,1)),  -- 端点发送累积文本（stream-events §4.1）
   billing_url           TEXT,     -- errors.md 的 top_up 用；NULL 表示该 action 不出现
   status_url            TEXT,     -- errors.md 的 view_service_status 用；NULL 表示不出现
   sort_order            INTEGER NOT NULL DEFAULT 0,

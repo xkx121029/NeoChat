@@ -1,6 +1,6 @@
 # spec/providers.md — Provider 契约
 
-- 版本：**1.0.0-draft.4**
+- 版本：**1.0.0-draft.5**
 - 状态：DRAFT（待独立评审）
 - 起草日期：2026-11-22
 - 适用：协议层（双端）、模型管理、能力矩阵、传输层
@@ -244,17 +244,21 @@ v1 MUST NOT 发送任何可识别用户的字段。`extra_body_json` 可传 `pro
 
 `conversation.settings_json` 与 `agent_profile.sampling_json` 都是对 canonical `sampling` 与 `reasoning` 的**逐字段覆盖**，不是整体替换：
 
-1. 取值优先级（高→低）：会话 `settings_json` → Agent `sampling_json` → 模型元数据默认 → provider 默认（即"不发送该字段"）。
-2. 每层只覆盖自己出现的键；**显式 `null` 表示"取消下层设置，回到不发送"**，与"该键不存在"不同。
-3. 未出现在任何层的键，canonical 里即为 `null`（未指定），按 `providers.md` §3 的"不支持则剥离"处理。
+1. 取值优先级（高→低）：会话 `settings_json` → Agent `sampling_json` → provider 默认（不发送）。
+   **没有"模型元数据默认"这一层**：`model` 表只存能力与价格，不存采样默认值。不要为它造一个不存在的数据源。
+2. 每层每个键是**三态**，不是两态：
+   - 键不存在 → 继续向下回退；
+   - 值为 `null` → **停止回退，最终不发送该字段**（用户显式取消）；
+   - 值为具体值 → 采用。
+3. canonical 里出现 `null` 只有两种来源（"三层都回退到 provider 默认"与"某层显式取消"），两者对请求体的影响完全相同（不发送该字段），因此 `request-golden` 不区分它们，也不得区分。
 4. 三处实现必须一致，否则 `request-golden`（§8 判据 4）会失败。
 
-**落盘形状（消除"稀疏 vs 全量快照"的二义）**：`settings_json` 与 `sampling_json` 都存**稀疏对象**——只包含用户显式设置过的键，绝不含 `null` 值。规则：
+**落盘形状（消除"稀疏 vs 全量快照"的二义）**：`settings_json` 与 `sampling_json` 都是**稀疏对象**，只存用户显式设置过的键；顶层平铺 canonical `sampling` 与 `reasoning` 的键名（不嵌套子对象）。
 
-- "恢复默认" = 从 JSON 里**删除该键**，不是存 `null`。
-- 因此 canonical 里出现的 `null` 只可能来自"所有层都没设"，不存在"冲突的 null 覆盖"。
-- 导入/导出按原样搬运这两个字符串（它们是 `TEXT`，不做结构解释），但读出来的内容必须满足上面的稀疏约束；导入端遇到含 `null` 的历史数据时 MUST 先剔除 null 键再使用，并记诊断。
-- 对象顶层只允许出现 canonical `sampling` 与 `reasoning` 的键名（闭集），出现未知键 → 忽略并记 trace，不得透传到请求体。
+- "恢复默认" = **删除该键**（回退到下一层）。
+- "显式不发送" = 存 `null`（该键存在且值为 null）。
+- 因此 JSON 里允许出现 `null`，但只允许出现在这些顶层键的值上；嵌套对象、数组、未知键一律不接受。
+- 导入时遇到未知键 → 忽略并记 trace，不得透传到请求体；遇到结构不是扁平对象的旧数据 → 直接丢弃该 blob 并提示"采样设置需重新配置"（不做猜测修复）。
 
 ## 6.6 并发上限
 
