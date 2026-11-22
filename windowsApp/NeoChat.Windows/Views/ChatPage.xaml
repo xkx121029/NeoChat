@@ -136,6 +136,102 @@
     </Page.Resources>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 会话列表（M1-WIN-004）：标题 / 最后消息时间 / 按 last_message_at DESC 排序，点选切换。
+             尺寸全部取自令牌（LayoutRailWidth、LayoutRailRowMinHeight、ThicknessRail*，见 Tokens.cs）。 -->
+        <Border
+            Grid.Column="0"
+            Width="{StaticResource LayoutRailWidth}"
+            Padding="{StaticResource ThicknessRail}"
+            Background="{StaticResource BrushMistLowest}"
+            BorderBrush="{StaticResource BrushChromeHairline}"
+            BorderThickness="{StaticResource BorderThicknessRailDivider}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Button
+                    Grid.Row="0"
+                    MinHeight="{StaticResource LayoutEmptyCapsuleHeight}"
+                    Margin="{StaticResource MarginRailHeader}"
+                    Padding="{StaticResource ThicknessEmptyCapsule}"
+                    HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="新建对话"
+                    Background="{StaticResource BrushSeed}"
+                    Click="OnNewConversationClick"
+                    CornerRadius="{StaticResource RadiusCapsule}"
+                    Foreground="{StaticResource BrushOnSeed}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="{StaticResource FontSizeBodyMedium}"
+                        FontWeight="{StaticResource WeightSemiBold}"
+                        LineHeight="{StaticResource LineHeightBodyMedium}"
+                        Text="{x:Bind chat:ConversationListViewModel.NewConversationLabel}" />
+                </Button>
+
+                <!-- 列表空态：一条也没有会话时给一句安静的话，不留白板 -->
+                <StackPanel
+                    Grid.Row="1"
+                    Margin="{StaticResource MarginMd}"
+                    VerticalAlignment="Top"
+                    Spacing="{StaticResource SpaceXs}"
+                    Visibility="{x:Bind Conversations.IsEmpty, Mode=OneWay}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="{StaticResource FontSizeBodyMedium}"
+                        Foreground="{StaticResource BrushInkMuted}"
+                        LineHeight="{StaticResource LineHeightBodyMedium}"
+                        Text="{x:Bind chat:ConversationListViewModel.EmptyTitle}" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="{StaticResource FontSizeLabelSmall}"
+                        Foreground="{StaticResource BrushInkFaint}"
+                        LineHeight="{StaticResource LineHeightLabelSmall}"
+                        Text="{x:Bind chat:ConversationListViewModel.EmptyHint}" />
+                </StackPanel>
+
+                <ListView
+                    x:Name="ConversationList"
+                    Grid.Row="1"
+                    Padding="{StaticResource ThicknessZero}"
+                    Background="{StaticResource BrushTransparent}"
+                    BorderThickness="{StaticResource ThicknessZero}"
+                    ItemsSource="{x:Bind Conversations.Items}"
+                    SelectionChanged="OnConversationSelectionChanged"
+                    SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="chat:ConversationListItem">
+                            <StackPanel
+                                MinHeight="{StaticResource LayoutRailRowMinHeight}"
+                                Padding="{StaticResource ThicknessRailItem}"
+                                Spacing="{StaticResource SpaceXxs}">
+                                <TextBlock
+                                    FontSize="{StaticResource FontSizeTitleSmall}"
+                                    Foreground="{StaticResource BrushInk}"
+                                    LineHeight="{StaticResource LineHeightTitleSmall}"
+                                    Text="{x:Bind Title}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <TextBlock
+                                    FontSize="{StaticResource FontSizeLabelSmall}"
+                                    Foreground="{StaticResource BrushInkFaint}"
+                                    LineHeight="{StaticResource LineHeightLabelSmall}"
+                                    Text="{x:Bind TimeLabel}"
+                                    TextWrapping="NoWrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
         <!-- G15 页面光晕：glowPrimary 右上 / glowSecondary 左下 -->
         <Ellipse
             Width="{StaticResource LayoutGlowDiameter}"
@@ -527,6 +623,7 @@
                     Text="{x:Bind ViewModel.CharacterCountText, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.ShowCharacterCount, Mode=OneWay}" />
             </StackPanel>
+        </Grid>
         </Grid>
     </Grid>
 </Page>

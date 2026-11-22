@@ -302,5 +302,10 @@ public static class Tokens
         public const double BlockQuoteBarWidth = 3; // 推断值：设计系统无引用条令牌，取 3 以对齐 B01/B02 之间的视觉重量
         public const double TableMinColumnWidth = 96; // 推断值：设计系统无表格最小列宽，防单字列挤压
         public const double MathBadgeSize = 11; // T15 labelSmall 11（公式降级标注）— typography.dart:215-221
+
+        // 会话列表（M1-WIN-004）。设计系统只给了聊天列（P07 720 / P09 696），没有侧栏条目；
+        // 下面两个是推断值，取值原则：栏宽容纳 15 号中文标题 16 字，行高容两行（19.5 + 14.85 + 上下 8）。
+        public const double RailWidth = 240; // 推断值：会话列表栏宽（设计系统无侧栏）
+        public const double RailRowMinHeight = 56; // 推断值：标题 19.5 + 时间 14.85 + 上下 8×2
     }
 }

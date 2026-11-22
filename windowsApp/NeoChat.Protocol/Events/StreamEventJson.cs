@@ -197,6 +197,22 @@ public static class StreamEventJson
         WriteType(writer, streamEvent, "notice");
     }
 
+    /// <summary>
+    /// The canonical error object (spec/errors.md §2) as one JSON string. Persistence stores this in
+    /// <c>message.error_json</c>, so a reloaded failure holds exactly the object the stream carried.
+    /// </summary>
+    public static string ErrorToJson(ProviderError error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        var buffer = new ArrayBufferWriter<byte>(512);
+        using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
+        {
+            WriteError(writer, error);
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
     private static void WriteError(Utf8JsonWriter writer, ProviderError error)
     {
         writer.WriteStartObject();

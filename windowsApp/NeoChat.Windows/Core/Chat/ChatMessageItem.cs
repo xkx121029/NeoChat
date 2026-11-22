@@ -20,6 +20,9 @@ public sealed class ChatMessageItem : ObservableObject
 
     public ChatRole Role { get; }
 
+    /// <summary>Database row id once the message is persisted; null when no store is attached.</summary>
+    public string? RowId { get; internal set; }
+
     public bool IsUser => Role == ChatRole.User;
 
     public bool IsAssistant => Role == ChatRole.Assistant;

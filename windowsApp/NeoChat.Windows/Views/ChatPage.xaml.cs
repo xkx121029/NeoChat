@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using NeoChat.Windows.Core.Chat;
 using NeoChat.Windows.Core.Design;
 using NeoChat.Windows.Core.Errors;
+using NeoChat.Windows.Core.Storage;
 using NeoChat.Windows.Views.Markdown;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
@@ -27,8 +28,11 @@ public sealed partial class ChatPage : Page
     private readonly Dictionary<FrameworkElement, (ChatMessageItem Item, PropertyChangedEventHandler Handler)> _tracked = [];
     private readonly Dictionary<FrameworkElement, Storyboard> _pulses = [];
     private readonly ProviderStore _store;
+    private NeoChatDatabase? _database;
+    private SqliteConversationRepository? _repository;
     private ProviderSettings _settings;
     private bool _pinnedToBottom = true;
+    private bool _syncingSelection;
     private double _bubbleMaxWidth;
 
     public ChatPage()
@@ -38,7 +42,12 @@ public sealed partial class ChatPage : Page
         _settings = _store.Resolve();
         var failureLog = new JsonlFailureLog(dataDirectory);
         var client = new HttpChatStreamClient(() => _settings);
-        ViewModel = new ChatSessionViewModel(client, failureLog, _settings);
+
+        // History lives in %LOCALAPPDATA%\NeoChat\neochat.db. If that file cannot be opened the chat
+        // still works for this run; the reason lands in startup.log instead of a silently empty rail.
+        _repository = OpenConversationStore();
+        Conversations = new ConversationListViewModel(_repository);
+        ViewModel = new ChatSessionViewModel(client, failureLog, _settings, _repository);
 
         InitializeComponent();
 
@@ -47,9 +56,12 @@ public sealed partial class ChatPage : Page
         ReadingColumn.SizeChanged += OnReadingColumnSizeChanged;
         MessagesRepeater.SizeChanged += (_, _) => FollowIfPinned();
         Loaded += OnLoaded;
+        Unloaded += OnPageUnloaded;
     }
 
     public ChatSessionViewModel ViewModel { get; }
+
+    public ConversationListViewModel Conversations { get; }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -59,7 +71,54 @@ public sealed partial class ChatPage : Page
         UpdateSendKey();
         UpdateBubbleWidth();
         RenderErrorBanner();
+        RestoreConversations();
         FocusComposer();
+    }
+
+    /// <summary>Opens the database, reconciles messages a killed process left streaming, and returns its store.</summary>
+    private SqliteConversationRepository? OpenConversationStore()
+    {
+        try
+        {
+            _database = NeoChatDatabase.Open();
+            var repository = new SqliteConversationRepository(_database);
+            var reconciled = repository.AbortOrphanStreaming();
+            if (reconciled > 0)
+            {
+                App.Trace("startup: " + reconciled + " message(s) left streaming were marked aborted");
+            }
+
+            return repository;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            App.Trace("conversation store unavailable, history disabled for this run", exception);
+            _database?.Dispose();
+            _database = null;
+            return null;
+        }
+    }
+
+    /// <summary>Rail first, then the newest conversation: that is what "reopen where I left off" means.</summary>
+    private void RestoreConversations()
+    {
+        Conversations.Refresh();
+        if (Conversations.Items.Count == 0)
+        {
+            ViewModel.StartNewConversation();
+            return;
+        }
+
+        ViewModel.OpenConversation(Conversations.Items[0].Id);
+        SelectRail(Conversations.Items[0].Id);
+    }
+
+    private void OnPageUnloaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Dispose();
+        _repository?.Dispose();
+        _repository = null;
+        _database = null;
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -70,6 +129,15 @@ public sealed partial class ChatPage : Page
                 UpdateStatusIndicator();
                 UpdateSendKey();
                 FollowIfPinned();
+
+                // A finished turn changes a row's title or time, so the rail is rebuilt once the session
+                // settles rather than on every token.
+                if (!ViewModel.IsStreaming)
+                {
+                    Conversations.Refresh(ViewModel.ConversationId);
+                    SelectRail(ViewModel.ConversationId);
+                }
+
                 break;
             case nameof(ChatSessionViewModel.Error):
                 RenderErrorBanner();
@@ -501,8 +569,40 @@ public sealed partial class ChatPage : Page
     private void OnNewConversationClick(object sender, RoutedEventArgs e)
     {
         ViewModel.StartNewConversation();
+        Conversations.Refresh(ViewModel.ConversationId);
+        SelectRail(ViewModel.ConversationId);
         UpdateBubbleWidth();
         FocusComposer();
+    }
+
+    private void OnConversationSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingSelection || ConversationList.SelectedItem is not ConversationListItem item)
+        {
+            return;
+        }
+
+        ViewModel.OpenConversation(item.Id);
+        Conversations.Select(item.Id);
+        UpdateBubbleWidth();
+        FocusComposer();
+    }
+
+    /// <summary>Points the rail at the open conversation without re-entering the selection handler.</summary>
+    private void SelectRail(string? conversationId)
+    {
+        _syncingSelection = true;
+        try
+        {
+            Conversations.Select(conversationId);
+            ConversationList.SelectedItem = conversationId is null
+                ? null
+                : Conversations.Items.FirstOrDefault(item => item.Id == conversationId);
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
     }
 
     private async void OnModelClick(object sender, RoutedEventArgs e) => await ShowProviderDialogAsync(focusBaseUrl: false);

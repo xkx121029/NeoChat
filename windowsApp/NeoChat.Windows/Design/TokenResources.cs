@@ -257,11 +257,19 @@ internal static class TokenResources
         AddNumber(dictionary, "LayoutGlowDiameter", Tokens.Layout.GlowDiameter);
         AddNumber(dictionary, "LayoutIconGlyphSize", Tokens.Layout.IconGlyphSize);
         AddNumber(dictionary, "SpaceReadingWidth", Tokens.Space.ReadingWidth);
+        AddNumber(dictionary, "LayoutRailWidth", Tokens.Layout.RailWidth);
+        AddNumber(dictionary, "LayoutRailRowMinHeight", Tokens.Layout.RailRowMinHeight);
         AddNumber(dictionary, "LayoutOptimisticOpacity", Tokens.Layout.OptimisticBubbleOpacity);
         dictionary["LayoutErrorMaxTextLinesInt"] = (int)Tokens.Layout.ErrorMaxTextLines;
         dictionary["LayoutThinkingWindowLinesInt"] = (int)Tokens.Layout.ThinkingWindowLines;
         AddNumber(dictionary, "LayoutComposerTextVerticalPadding", Tokens.Layout.ComposerTextVerticalPadding);
         // BorderThickness 需要 Thickness，不能是 double（StaticResource 不会做数值转换）。
+        // 会话列表：内边距与行内边距全部取自既有间距档位，只有右侧分隔线需要单独的 Thickness。
+        dictionary["ThicknessRail"] = new Thickness(Tokens.Space.Sm);
+        dictionary["ThicknessRailItem"] = new Thickness(
+            Tokens.Space.Md, Tokens.Space.Sm, Tokens.Space.Md, Tokens.Space.Sm);
+        dictionary["MarginRailHeader"] = new Thickness(0, 0, 0, Tokens.Space.Sm);
+        dictionary["BorderThicknessRailDivider"] = new Thickness(0, 0, Tokens.Border.Hairline, 0);
         AddUniform(dictionary, "BorderHairline", Tokens.Border.Hairline);
         AddUniform(dictionary, "BorderCard", Tokens.Border.Card);
         AddUniform(dictionary, "BorderErrorBanner", Tokens.Border.ErrorBanner);
