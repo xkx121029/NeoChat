@@ -1,6 +1,6 @@
 # spec/errors.md — 统一错误模型
 
-- 版本：**1.0.0-draft.3**
+- 版本：**1.0.0-draft.4**
 - 状态：DRAFT（待独立评审）
 - 起草日期：2026-11-22
 - 适用：双端协议层、传输层、状态层、错误页、诊断页、崩溃兜底
@@ -97,7 +97,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `MODEL_NOT_FOUND` | provider | ❌ | 该模型在服务器上不存在 | 模型已下线或改名<br>模型 ID 拼写错误<br>该 Base URL 不提供此模型 | `refresh_models`<br>`edit_provider` |
 | `PARAM_INVALID` | provider | ❌ | 请求参数不被接受 | 该模型不支持某个采样参数<br>数值越界（如 temperature > 2）<br>合并了不同协议所需的字段 | `view_raw`<br>`edit_provider`<br>`switch_model` |
-| `CONTEXT_OVERFLOW` | provider | ❌ | 上下文长度超过模型上限 | 历史消息太多<br>附件太大<br>模型窗口被误设 | `reduce_context`<br>`reduce_context`<br>`switch_model` |
+| `CONTEXT_OVERFLOW` | provider | ❌ | 上下文长度超过模型上限 | 历史消息太多<br>附件太大<br>模型窗口被误设 | `reduce_context`<br>`switch_model`<br>`edit_provider` |
 | `CAPABILITY_UNSUPPORTED` | config | ❌ | 该模型不支持此内容类型 | 模型不支持图片输入<br>模型不支持工具调用<br>模型不支持结构化输出 | `switch_model`<br>`edit_provider`<br>`view_capability_matrix` |
 | `CONTENT_FILTERED` | provider | ❌ | Provider 的内容策略拦截了本次请求或回复 | 输入触发了服务商策略<br>输出被中途拦截<br>账户所在区域限制 | `retry`<br>`switch_model` |
 | `PARSE_SSE_INVALID` | parse | ❌ | 服务器返回的数据格式无法识别 | Base URL 指向了非流式端点<br>代理注入了 HTML 错误页<br>该端点返回的是 JSON 错误 | `check_base_url`<br>`check_proxy`<br>`view_raw` |

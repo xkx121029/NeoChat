@@ -373,7 +373,9 @@
         "max_retries",
         "concurrency_limit",
         "pass_through",
-        "sort_order"
+        "sort_order",
+        "first_byte_timeout_ms",
+        "total_timeout_ms"
       ],
       "properties": {
         "id": {
@@ -489,6 +491,32 @@
             "integer",
             "null"
           ]
+        },
+        "first_byte_timeout_ms": {
+          "type": "integer",
+          "minimum": 5000,
+          "maximum": 300000
+        },
+        "total_timeout_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "0 = 不限"
+        },
+        "billing_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048,
+          "description": "NULL 表示 top_up 不出现"
+        },
+        "status_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048,
+          "description": "NULL 表示 view_service_status 不出现"
         }
       }
     },
@@ -1276,7 +1304,8 @@
         "part_index",
         "kind",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "truncated"
       ],
       "properties": {
         "id": {
@@ -1317,6 +1346,10 @@
         },
         "updated_at": {
           "type": "integer"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "该 part 本身被截断（ADR-003 §2.3）"
         }
       }
     },

@@ -20,13 +20,13 @@
 
 | 文件 | 版本 | 状态 | 日期 | 变更摘要 |
 | --- | --- | --- | --- | --- |
-| `spec/stream-events.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 6 条 MUST-FIX 已修（见 docs/reviews/spec-review-1.md） |
-| `spec/errors.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 32 个 code / 21 个 action；评审 6 条 MUST-FIX 已修 |
-| `spec/providers.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 4 条 MUST-FIX 已修；新增覆盖语义 §6.5、并发上限 §6.6 |
+| `spec/stream-events.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 评审 6 条 MUST-FIX 已修（见 docs/reviews/spec-review-1.md） |
+| `spec/errors.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 32 个 code / 21 个 action；评审 6 条 MUST-FIX 已修 |
+| `spec/providers.md` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 评审 4 条 MUST-FIX 已修；新增覆盖语义 §6.5、并发上限 §6.6 |
 | `spec/render-model.md` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 评审 3 条 MUST-FIX 已修；补 info string 语法、图片成块判定、引用式链接策略 |
-| `spec/schema/v1.sql` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | 22 表 + FTS5 + 12 索引；补 message_part.truncated 与 provider 四列；建库已实测 |
-| `spec/schema/export-v1.json` | 1.0.0-draft.3 | 已评审·待复验 | 2026-11-22 | required 与 DDL NOT NULL 全量对齐（自动校验通过）；容器定为单 JSON ≤200MB |
-| `spec/conformance/CASES.md` | 1.1.0-draft | 已评审·待复验 | 2026-11-22 | 78 条用例；新增不变量覆盖表；比对规则写明剔除非确定性字段 |
+| `spec/schema/v1.sql` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | 22 表 + FTS5 + 12 索引；补 message_part.truncated 与 provider 四列；建库已实测 |
+| `spec/schema/export-v1.json` | 1.0.0-draft.4 | 已评审·待复验 | 2026-11-22 | required 与 DDL NOT NULL 全量对齐（自动校验通过）；容器定为单 JSON ≤200MB |
+| `spec/conformance/CASES.md` | 1.1.1-draft | 已评审·待复验 | 2026-11-22 | 78 条用例；新增不变量覆盖表；比对规则写明剔除非确定性字段 |
 
 **冻结含义**：升为 FROZEN 需 (a) 独立评审通过（已完成第一轮，见 [docs/reviews/spec-review-1.md](reviews/spec-review-1.md)），(b) MUST-FIX 逐条修完并通过第二轮复验，(c) 双端各有一份按本 spec 实现的最小验证（M1），(d) G0 验收记录落盘。**当前是「已评审·待复验」**：29 条 MUST-FIX 已全部修入，等第二轮确认，我不自我批准。
 
@@ -94,6 +94,7 @@ M0 任务单全部在 [docs/M0-TASKS.md](docs/M0-TASKS.md)。**无任务已下�
 | 任务 | 结论 | 否决原因 | 返工指令 | 复验条件 |
 | --- | --- | --- | --- | --- |
 | M0-REV-001 契约独立评审 | **改后冻结** | 29 条 MUST-FIX，其中 3 条阻塞级：`trace_id`×双端 SHA 判据、§2.3×§4.1 终止分支相反、8 MiB 单行×FRAME-009 互斥 | 已按报告逐条修入，见 `spec/CHANGELOG.md` 的 draft.3 / 1.1.0-draft 五行 | 第二轮独立评审对同一 29 条逐条确认关闭，且无新增 MUST-FIX |
+| M0-REV-002 复验（第二轮） | **还需一轮** | 25 条已关闭 / 4 条未关闭 / 1 条改偏。四条的同一根因：draft.3 给 DDL 加了 5 列但导出 schema 一列没跟；MF-X4 改偏（notes §6 定 200MB，§4 导入表仍写 2GB）；另 5 条新 MUST-FIX（稀疏对象形状、OAI 去重口径未进契约、CASES asserts 未定义键） | 已全部修入 draft.4 / 1.1.1-draft；**并承认 verify.py 的 ALL PASS 当时是假证据**（反向覆盖被前置条件跳过），已加反向覆盖 + 注入自证 | 第三轮复验对 5 条新缺陷逐条确认，且 verify.py 的自证项必须为 OK |
 
 ## 8. 对抗评审记录
 

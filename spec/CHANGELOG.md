@@ -13,6 +13,12 @@
 | 1.0.0-draft.3 | 2026-11-22 | providers | 评审 must-fix：temperature/top_p 优先级；reasoning mode 与 budget↔effort 反向表；补 `first_byte_timeout_ms`/`total_timeout_ms`/`billing_url`/`status_url`；cache.breakpoints 不产生事件；新增 §6.5 覆盖语义与 §6.6 并发上限；Gemini key 只走头 | 双端协议层 + 模型管理 | 是 |
 | 1.0.0-draft.3 | 2026-11-22 | render-model | 评审 must-fix：深度超限降级为 `unknown`（`text` 不是 Block）；新增 §2.1 info string 语法、§2.2 图片成块判定、§2.3 引用式链接不解析；Inline 计数改 10；flags 增 has_list/has_footnote | 双端渲染 | 是 |
 | 1.0.0-draft.3 | 2026-11-22 | schema/v1.sql + export-v1.json + notes | 评审 must-fix：`message_part.truncated`；provider 四个新列；导出补 sync 三件与 `last_check_*`；`content_omitted` 进 schema；AAD 唯一定义 + PBKDF2 下限 600000；容器定为单 JSON ≤200MB；required 与 NOT NULL 全量对齐（自动校验通过） | 存储层 + 导出 | 是 |
+| 1.0.0-draft.4 | 2026-11-22 | export-v1.json | 第二轮复验 D1：补 `first_byte_timeout_ms`/`total_timeout_ms`/`billing_url`/`status_url`/`message_part.truncated` 五列到 properties 与 required | 存储层 + 导出 | 是 |
+| 1.0.0-draft.4 | 2026-11-22 | export notes | D2：导入表的大小上限从 2GB 改为 200MB，与 §6.2 统一 | 导入 | 是 |
+| 1.0.0-draft.4 | 2026-11-22 | providers | D3：§6.5 写明 `settings_json`/`sampling_json` 是**稀疏对象**、恢复默认=删键、不存 null、顶层键闭集 | 双端存储 + 状态层 | 是 |
+| 1.0.0-draft.4 | 2026-11-22 | stream-events | D4：§4.1 补"一帧多事件固定顺序"与"重复 chunk 去重判据"；I11 限定为累积型端点 | 双端协议层 | 是 |
+| 1.0.0-draft.4 | 2026-11-22 | errors | SHOULD：`CONTEXT_OVERFLOW` 的 actions 去重 | 双端 | 是 |
+| 1.1.1-draft | 2026-11-22 | conformance/CASES | D5：§0 的 `asserts` 形状与 `db.check`/`socket.expect`/`perf.op` 闭集定义完整，FRAME-012 变为可机器判定 | QA | 是 |
 | 1.1.0-draft | 2026-11-22 | conformance/CASES | 评审 must-fix：比对剔除非确定性字段；OAI-009 可判定化；CAN-002 truncated 写死；新增 8 条用例（FRAME-011/012/013、OAI-011/012、ANT-009、RENDER-014/015）→ **78 条**；新增不变量覆盖表 | 双端协议层 + QA | 是 |
 
 ## 冻结流程（每个 spec 文件都适用）

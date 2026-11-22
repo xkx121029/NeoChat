@@ -1,6 +1,6 @@
 # spec/stream-events.md — 流式事件契约
 
-- 版本：**1.0.0-draft.3**
+- 版本：**1.0.0-draft.4**
 - 状态：DRAFT（待独立评审；按准则 7 我不批准自己写的 spec）
 - 起草日期：2026-11-22
 - 适用：Android 与 Windows 的传输层、协议层、状态层；conformance runner
@@ -114,7 +114,7 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 | I8 | 事件流与网络帧解耦：一个 provider 帧可产生 0..N 个事件；一个事件 MUST NOT 跨两个 provider 帧被拆分（表现为半条 JSON）。**唯一例外**：`usage` 允许由多帧合并而成（Anthropic 的 input 在 `message_start`、output 在 `message_delta`），合并后仍只发一条 |
 | I9 | 心跳/注释/空帧 MUST NOT 产生任何事件 |
 | I10 | 用户取消 MUST 以 `done{finish_reason:"aborted_user"}` 结束，MUST NOT 为 `failed` |
-| I11 | 一次尝试（attempt）内，`delta` 的文本 MUST NOT 重发已发过的前缀（适配器须维护 `emitted_prefix_len` 做差集） |
+| I11 | **仅对累积型端点**（Gemini 数组模式、被标记 `cumulative_stream=true` 的兼容端点）：一次尝试内 `delta` MUST NOT 重发已发过的前缀，适配器须维护 `emitted_prefix_len` 做差集。增量型端点（OpenAI/Anthropic）不适用，去重条件见 §4.1 |
 | I12 | 终止事件发出后 MUST 关闭 socket 或归还连接到池（不得让连接悬挂到空闲超时） |
 
 ### 3.4 消费层义务
@@ -142,6 +142,13 @@ JSON Lines，UTF-8，**一行一个事件**，无空行、无尾随逗号。字�
 | `data: [DONE]` | 为每个仍打开的 index 发 `tool_call_end`，然后 `done` |
 | `choices.length > 1` | 只用 `index==0`，其余丢弃 + `notice(multi_choice_ignored)` |
 | `data: {"error":{...}}` | `failed`（errors.md §5.1） |
+
+**一帧多事件时的固定顺序**：先发 `delta`，再按 `tool_calls[].index` 升序发 `tool_call_delta`（同 index 内按 `function.arguments` 顺序）。
+
+**重复 chunk 的去重判据**：OpenAI 系端点是**增量**语义，`delta.content` 相同不代表重复（模型可以合法地连发两个相同 token）。因此：
+
+- 仅当 conformance 的 `meta.duplicate=true`，或该 provider 被标记为 `cumulative_stream=true`（存 `provider.extra_json`）时，适配器才 MUST 用 `emitted_prefix_len` 做前缀差集；
+- 其余情况 MUST 原样发射，**禁止**按内容去重（会吞掉真实内容）。
 
 `finish_reason` 映射（只对**出现过**的取值映射）：`stop`→`stop`；`length`→`length`；`tool_calls`/`function_call`→`tool_calls`；`content_filter`→`content_filter`。**字段缺失时不得映射为 `stop`**：EOF 一律回到 §2.3 判定（从未见过 `finish_reason` → `failed(PARSE_INCOMPLETE)`）。
 

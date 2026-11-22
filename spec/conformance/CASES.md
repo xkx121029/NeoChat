@@ -1,6 +1,6 @@
 # spec/conformance/CASES.md — conformance 用例集
 
-- 版本：**1.1.0-draft**
+- 版本：**1.1.1-draft**
 - 状态：DRAFT（待独立评审）
 - 起草日期：2026-11-22
 - 用例总数：**78**
@@ -18,7 +18,7 @@
 | Runner 输出 | `events.jsonl`（StreamEvent 序列，键排序、无空白）+ `exit.json`（`{ok, case, error?}`） |
 | 判据 | (1) 双端 `events.jsonl` 的 SHA-256 相同；(2) 与 `expected.jsonl` 相同（若提供）；(3) `meta.json` 的 `expect_error` 命中 |
 | **非确定性字段** | 比对前 MUST 剔除：`failed.error.trace_id`、`failed.error.request_id`、`failed.error.raw` 中由 provider 生成的 id。剔除后仍不相同即为失败。剔除清单的改动需升版本 |
-| 非事件断言 | `meta.json` 可选 `asserts: {db: [...], socket: [...], perf: [{metric, op, value}]}`，runner 必须执行并在 `exit.json` 里逐条报告结果；缺失则视为该用例不检查这些方面 |
+| 非事件断言 | `meta.json` 可选 `asserts`，形状固定：`{db:[{check,args}], socket:[{expect,...}], perf:[{metric,op,value}]}`。`db.check` 闭集：`message_status`（args: `{message_id:"last"\|"<id>", status}`）、`message_part_truncated`（args: `{part:"last", value:true\|false}`）、`row_count`（args: `{table, where, count}`）、`no_rows`（args: `{table, where}`）。`socket.expect` 闭集：`closed_after_done`、`no_active_connection`、`cancelled_within_ms`（附 `ms`）。`perf.op` 闭集：`lte`、`gte`。runner MUST 逐条执行并在 `exit.json.asserts` 输出 `{id, ok, actual}`；缺 `asserts` 视为不检查 |
 | 错误路径格式 | 导入类用例的错误路径 MUST 为 JSON Pointer（如 `/data/attachments/3/local_path`），双端同格式 |
 | 期望文件 | 每个用例必须有 `expected.jsonl` 或 `expect_error`，二者必居其一 |
 

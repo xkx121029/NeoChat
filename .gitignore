@@ -1,0 +1,19 @@
+# OS
+Thumbs.db
+.DS_Store
+# IDE
+.idea/
+.vs/
+*.user
+# Build
+build/
+obj/
+bin/
+.gradle/
+local.properties
+# Env
+*.env
+.env*
+# Capy / scratch
+.capy/
+.capy2/
