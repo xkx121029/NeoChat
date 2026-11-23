@@ -22,3 +22,6 @@ __pycache__/
 
 # 生成的 conformance 样本（确定性可重生成，不入库避免 76MB 膨胀）
 spec/conformance/samples/
+
+# Kotlin
+.kotlin/

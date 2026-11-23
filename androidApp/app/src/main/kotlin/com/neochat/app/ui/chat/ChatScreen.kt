@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
     val state by viewModel.state.collectAsState()
     val conversations by viewModel.conversations.collectAsState()
+    val archived by viewModel.archivedConversations.collectAsState()
     var listOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val snackbarHost = remember { SnackbarHostState() }
@@ -62,6 +63,7 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
     val messageCopiedNotice = stringResource(R.string.chat_copied)
     val codeCopiedNotice = stringResource(R.string.chat_copied_code)
     val messageDeletedNotice = stringResource(R.string.chat_deleted)
+    val saveFailedNotice = stringResource(R.string.provider_save_failed)
 
     fun requireProvider() {
         providerFocus = store.focusField(emptyMap())
@@ -110,6 +112,7 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
     if (listOpen) {
         ConversationPanel(
             conversations = conversations,
+            archived = archived,
             activeId = state.conversationId,
             now = remember(listOpen) { System.currentTimeMillis() },
             onSelect = { id ->
@@ -122,6 +125,8 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
                 if (!store.isReady) requireProvider()
             },
             onDelete = viewModel::deleteConversation,
+            onArchive = viewModel::archiveConversation,
+            onUnarchive = viewModel::unarchiveConversation,
             onClose = { listOpen = false },
         )
     }
@@ -132,8 +137,9 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
             focus = focus,
             onDismiss = { providerFocus = null },
             onSave = { config ->
-                store.update(config)
+                val saved = store.update(config)
                 providerFocus = null
+                if (!saved) scope.launch { snackbarHost.showSnackbar(saveFailedNotice) }
             },
         )
     }

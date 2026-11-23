@@ -18,8 +18,10 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.neochat.app.chat.ChatViewModel
 import com.neochat.app.chat.ProtocolChatEngine
 import com.neochat.app.chat.ProviderConfigStore
+import com.neochat.app.data.KeystoreSecretSealer
 import com.neochat.app.data.NeoChatDatabase
 import com.neochat.app.data.RoomChatStore
+import com.neochat.app.data.SharedPreferencesProviderSettings
 import com.neochat.app.ui.chat.ChatScreen
 import com.neochat.app.ui.theme.NeoChatTheme
 
@@ -124,12 +126,22 @@ public class MainActivity : Activity(), LifecycleOwner, SavedStateRegistryOwner 
 /**
  * 进程级依赖图：配置、数据库与 ViewModel 都不随 Activity 重建而销毁（旋转屏幕不丢会话）。
  * 会话内容落在 `neochat.db`，进程结束只丢在飞的那次请求（下次启动扫成 `aborted`）。
+ *
+ * provider 配置在这里从磁盘读回：`SharedPreferences` 的 base_url / model 是明文，
+ * 密钥是 Keystore 封装后的密文（ADR-002），读回来就自动选中，冷启动不用重填。
  */
 private object ChatGraph {
 
     private var application: Context? = null
 
-    val store: ProviderConfigStore = ProviderConfigStore()
+    private val settings: SharedPreferencesProviderSettings by lazy {
+        SharedPreferencesProviderSettings(
+            context = requireNotNull(application) { "ChatGraph.install 未调用" },
+            sealer = KeystoreSecretSealer(KEY_ALIAS),
+        )
+    }
+
+    val store: ProviderConfigStore by lazy { ProviderConfigStore(settings.load(), settings) }
 
     private val database: NeoChatDatabase by lazy {
         NeoChatDatabase.open(requireNotNull(application) { "ChatGraph.install 未调用" })
@@ -146,4 +158,7 @@ private object ChatGraph {
     fun install(context: Context) {
         if (application == null) application = context.applicationContext
     }
+
+    /** ADR-002 §3：`provider_key.key_ref` 指向的就是这个 Keystore 条目。 */
+    private const val KEY_ALIAS: String = "provider_key_default"
 }

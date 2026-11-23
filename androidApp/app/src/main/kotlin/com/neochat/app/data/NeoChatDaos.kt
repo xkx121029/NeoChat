@@ -11,15 +11,23 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 internal interface ConversationDao {
 
+    /** 列表默认视图：只出未归档的会话。 */
     @Query(
-        "SELECT * FROM conversation WHERE deleted_at IS NULL " +
-            "ORDER BY archived ASC, pinned DESC, COALESCE(last_message_at, created_at) DESC, id DESC",
+        "SELECT * FROM conversation WHERE deleted_at IS NULL AND archived = 0 " +
+            "ORDER BY pinned DESC, COALESCE(last_message_at, created_at) DESC, id DESC",
     )
     fun observeAlive(): Flow<List<ConversationEntity>>
 
+    /** "已归档"入口：归档时间不单独落列，先按最后活动时间倒序。 */
     @Query(
-        "SELECT * FROM conversation WHERE deleted_at IS NULL " +
-            "ORDER BY archived ASC, pinned DESC, COALESCE(last_message_at, created_at) DESC, id DESC LIMIT 1",
+        "SELECT * FROM conversation WHERE deleted_at IS NULL AND archived = 1 " +
+            "ORDER BY COALESCE(last_message_at, created_at) DESC, id DESC",
+    )
+    fun observeArchived(): Flow<List<ConversationEntity>>
+
+    @Query(
+        "SELECT * FROM conversation WHERE deleted_at IS NULL AND archived = 0 " +
+            "ORDER BY pinned DESC, COALESCE(last_message_at, created_at) DESC, id DESC LIMIT 1",
     )
     suspend fun mostRecent(): ConversationEntity?
 
@@ -49,6 +57,12 @@ internal interface ConversationDao {
 
     @Query("UPDATE conversation SET title = :title, updated_at = :at, rev = :rev, sync_version = sync_version + 1 WHERE id = :id AND title_auto = 1")
     suspend fun retitleIfAuto(id: String, title: String, at: Long, rev: String)
+
+    @Query(
+        "UPDATE conversation SET archived = :archived, updated_at = :at, rev = :rev, " +
+            "sync_version = sync_version + 1 WHERE id = :id AND deleted_at IS NULL",
+    )
+    suspend fun setArchived(id: String, archived: Boolean, at: Long, rev: String)
 
     @Query(
         "UPDATE conversation SET deleted_at = :at, updated_at = :at, rev = :rev, " +
@@ -101,7 +115,32 @@ internal interface MessageDao {
     /** FTS 维护契约（`v1.sql`）：只有活着的消息参与索引，软删同时清行。虚表 Room 校验不了。 */
     @SkipQueryVerification
     @Query("DELETE FROM message_fts WHERE message_id IN (:ids)")
-    suspend fun deleteSearchRows(ids: List<String>)
+    suspend fun deleteSearchRows(ids: List<String>): Int
+
+    /** 一个 text part 一行；正文更新时先删旧行再插新行（同一事务内）。 */
+    @SkipQueryVerification
+    @Query(
+        "INSERT INTO message_fts(text, message_id, conversation_id, part_index) " +
+            "VALUES (:text, :messageId, :conversationId, :partIndex)",
+    )
+    suspend fun insertSearchRow(text: String, messageId: String, conversationId: String, partIndex: Long)
+
+    @SkipQueryVerification
+    @Query("DELETE FROM message_fts WHERE message_id = :messageId AND part_index = :partIndex")
+    suspend fun deleteSearchRow(messageId: String, partIndex: Long)
+
+    /** 量 FTS5 是否真的编进了这台设备的 SQLite（Robolectric 的 SQLite 没编，见 SchemaSnapshotTest）。 */
+    @SkipQueryVerification
+    @Query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'message_fts'")
+    suspend fun searchTableCount(): Int
+
+    @SkipQueryVerification
+    @Query(
+        "SELECT message_id AS messageId, conversation_id AS conversationId, part_index AS partIndex, " +
+            "snippet(message_fts, 0, '[', ']', '…', 12) AS snippet FROM message_fts " +
+            "WHERE message_fts MATCH :expression ORDER BY message_id ASC, part_index ASC",
+    )
+    suspend fun search(expression: String): List<SearchHitEntity>
 
     /** 进程被杀留下的 `streaming` 行；下次启动扫成 `aborted`，已收到的正文不动。 */
     @Query(
@@ -127,6 +166,14 @@ internal interface MessagePartDao {
             "ORDER BY p.created_at ASC, p.part_index ASC",
     )
     suspend fun listForConversation(conversationId: String): List<MessagePartEntity>
+
+    /** FTS 行的定位信息：写正文前用它拿到 message_id / conversation_id / part_index。 */
+    @Query(
+        "SELECT p.message_id AS messageId, m.conversation_id AS conversationId, " +
+            "p.part_index AS partIndex, p.kind AS kind, p.body AS body " +
+            "FROM message_part p JOIN message m ON m.id = p.message_id WHERE p.id = :id",
+    )
+    suspend fun indexPath(id: String): PartIndexEntity?
 }
 
 /** 用量只追加不更新；本期不做统计界面，先保证数据在。 */
@@ -150,3 +197,20 @@ internal interface AppSettingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(entity: AppSettingEntity)
 }
+
+/** `message_fts` 的一行查询结果（列名来自查询别名，Room 按名字映射，不是实体表）。 */
+internal data class SearchHitEntity(
+    val messageId: String,
+    val conversationId: String,
+    val partIndex: Long,
+    val snippet: String,
+)
+
+/** `message_part` 上写 FTS 行需要的定位信息与当前正文。 */
+internal data class PartIndexEntity(
+    val messageId: String,
+    val conversationId: String,
+    val partIndex: Long,
+    val kind: String,
+    val body: String?,
+)

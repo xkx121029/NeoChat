@@ -182,6 +182,42 @@ class RoomChatStoreTest {
         assertEquals(38, device.length)
     }
 
+    @Test
+    fun `归档只翻 archived 位：默认列表看不到，已归档列表看得到，取消归档回到默认列表`(): Unit = runBlocking {
+        store.open()
+        val kept = store.createConversation()
+        store.beginTurn(kept, "留着的会话", MODEL)
+        clock += 1_000
+        val hidden = store.createConversation()
+        store.beginTurn(hidden, "要归档的会话", MODEL)
+
+        store.archiveConversation(hidden)
+
+        assertEquals(listOf(kept), store.conversations().first().map { it.id })
+        assertEquals(listOf(hidden), store.archivedConversations().first().map { it.id })
+        assertEquals(1, readOne("SELECT archived FROM conversation WHERE id = ?", arrayOf(hidden)) { it.getInt(0) })
+        val keptMessages = readOne("SELECT COUNT(*) FROM message WHERE conversation_id = ?", arrayOf(hidden)) {
+            it.getInt(0)
+        }
+        assertEquals(2, keptMessages)
+
+        store.unarchiveConversation(hidden)
+
+        assertEquals(listOf(hidden, kept), store.conversations().first().map { it.id })
+        assertTrue(store.archivedConversations().first().isEmpty())
+    }
+
+    @Test
+    fun `归档会话不会被冷启动恢复选中`(): Unit = runBlocking {
+        store.open()
+        val recent = store.createConversation()
+        store.beginTurn(recent, "最近的会话", MODEL)
+
+        store.archiveConversation(recent)
+
+        assertEquals(null, store.open().latestConversationId)
+    }
+
     /** Room 2.8 的 `query` 只收 SupportSQLiteQuery，这里直接走 openHelper，并挪到 IO 线程。 */
     private suspend fun <T> readOne(
         sql: String,

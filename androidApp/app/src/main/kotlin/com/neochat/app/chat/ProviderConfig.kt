@@ -7,7 +7,8 @@ import androidx.compose.runtime.setValue
 /**
  * 一个 OpenAI 兼容端点的连接参数。
  *
- * 密钥只留在进程内存里：本里程碑没有密钥库/加密层，落盘会把明文密钥留在设备上（见交付"待决问题"）。
+ * 落盘口径见 [ProviderSettings]：base_url / model 明文可读，密钥经 Android Keystore 封装后
+ * 才写进 `SharedPreferences`（ADR-002 §2.1），冷启动从这里读回并自动选中。
  */
 public data class ProviderConfig(
     public val baseUrl: String = "",
@@ -17,8 +18,11 @@ public data class ProviderConfig(
     public fun isReady(): Boolean = baseUrl.isNotBlank() && apiKey.isNotBlank() && model.isNotBlank()
 }
 
-/** 进程内单例式的配置持有者；`config` 是可观察状态，界面改完立即生效。 */
-public class ProviderConfigStore(initial: ProviderConfig = ProviderConfig()) {
+/** 进程内单例式的配置持有者；`config` 是可观察状态，界面改完立即生效并顺手落盘。 */
+public class ProviderConfigStore(
+    initial: ProviderConfig = ProviderConfig(),
+    private val settings: ProviderSettings? = null,
+) {
 
     public var config: ProviderConfig by mutableStateOf(initial)
         private set
@@ -26,12 +30,14 @@ public class ProviderConfigStore(initial: ProviderConfig = ProviderConfig()) {
     public val isReady: Boolean
         get() = config.isReady()
 
-    public fun update(next: ProviderConfig) {
+    /** 先更新内存再落盘；返回 false 表示密钥没能封装写盘（界面据此提示，不抛给用户）。 */
+    public fun update(next: ProviderConfig): Boolean {
         config = ProviderConfig(
             baseUrl = next.baseUrl.trim(),
             apiKey = next.apiKey.trim(),
             model = next.model.trim(),
         )
+        return settings?.save(config) ?: true
     }
 
     /** 错误里的 `edit_provider {focus:"key"|"base_url"}` 用它决定对话框里先聚焦哪个字段。 */

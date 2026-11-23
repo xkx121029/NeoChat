@@ -2,6 +2,7 @@ package com.neochat.app.chat
 
 import com.neochat.app.data.ChatStore
 import com.neochat.app.data.ConversationSummary
+import com.neochat.app.data.SearchHit
 import com.neochat.app.data.StoreSnapshot
 import com.neochat.app.data.StoredMessage
 import com.neochat.app.data.StoredStatus
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 internal class FakeChatStore : ChatStore {
 
     val summaryFlow: MutableStateFlow<List<ConversationSummary>> = MutableStateFlow(emptyList())
+    val archivedFlow: MutableStateFlow<List<ConversationSummary>> = MutableStateFlow(emptyList())
 
     var latestConversationId: String? = null
     var restoreMessages: List<StoredMessage> = emptyList()
@@ -21,6 +23,9 @@ internal class FakeChatStore : ChatStore {
 
     val created: MutableList<String> = mutableListOf()
     val deleted: MutableList<String> = mutableListOf()
+    val archived: MutableList<String> = mutableListOf()
+    val unarchived: MutableList<String> = mutableListOf()
+    var searchHits: List<SearchHit> = emptyList()
     val appendedText: StringBuilder = StringBuilder()
     val appendedReasoning: StringBuilder = StringBuilder()
     val finished: MutableList<StoredStatus> = mutableListOf()
@@ -37,6 +42,18 @@ internal class FakeChatStore : ChatStore {
     }
 
     override fun conversations(): Flow<List<ConversationSummary>> = summaryFlow
+
+    override fun archivedConversations(): Flow<List<ConversationSummary>> = archivedFlow
+
+    override suspend fun archiveConversation(id: String) {
+        archived += id
+    }
+
+    override suspend fun unarchiveConversation(id: String) {
+        unarchived += id
+    }
+
+    override suspend fun search(query: String): List<SearchHit> = searchHits
 
     override suspend fun createConversation(): String {
         sequence += 1

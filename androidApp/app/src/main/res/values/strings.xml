@@ -65,12 +65,20 @@
     <string name="conversations_time_yesterday">昨天</string>
     <string name="conversations_time_date">%1$02d-%2$02d</string>
     <string name="conversations_time_older">%1$04d-%2$02d-%3$02d</string>
+    <string name="conversations_archive">归档</string>
+    <string name="conversations_unarchive">取消归档</string>
+    <string name="conversations_archived_title">已归档</string>
+    <string name="conversations_archived_open">已归档</string>
+    <string name="conversations_archived_back">返回列表</string>
+    <string name="conversations_archived_empty_title">没有归档的会话</string>
+    <string name="conversations_archived_empty_hint">长按会话可以把它归档到这里。</string>
 
     <string name="provider_title">模型与连接</string>
     <string name="provider_base_url">Base URL</string>
     <string name="provider_api_key">API Key</string>
     <string name="provider_model">模型 ID</string>
-    <string name="provider_hint">密钥只保存在当前进程内存里，退出应用即清除。</string>
+    <string name="provider_hint">密钥用 Android Keystore 加密后保存在本机，重启应用自动恢复；换设备或清除应用数据后需要重新填写。</string>
+    <string name="provider_save_failed">密钥没能加密保存，本机存储可能异常；本次配置只在当前进程有效。</string>
     <string name="provider_save">保存</string>
     <string name="provider_cancel">取消</string>
 

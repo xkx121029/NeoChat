@@ -1,5 +1,6 @@
 package com.neochat.app.data
 
+import androidx.room.withTransaction
 import com.neochat.protocol.UsageCounts
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,6 +17,9 @@ import kotlinx.coroutines.withContext
 /**
  * [ChatStore] 的 Room 实现。所有写操作排在同一个单线程 dispatcher 上：队列顺序 = 调用顺序，
  * 所以 `beginTurn` → 若干 `append` → `finish` 不会乱序；流式期间进程被杀只丢掉未提交的那几条。
+ *
+ * 全文索引交给 [MessageIndex]：text part 的正文与它的 FTS 行永远在**同一事务**里写，
+ * 软删时同一事务里清行（`v1.sql` 头部注释）。
  */
 internal class RoomChatStore(
     private val db: NeoChatDatabase,
@@ -27,26 +31,21 @@ internal class RoomChatStore(
 
     private val pending: MutableList<Job> = mutableListOf()
 
-    private var cachedDeviceId: String? = null
+    private val index: MessageIndex = MessageIndex(db)
+
+    private val device: DeviceIdentity = DeviceIdentity(db, now)
 
     override suspend fun open(): StoreSnapshot = withContext(writer) {
         val at = now()
         val swept = db.messages().abortStreaming(at, Uuid7.revision())
-        deviceId()
+        device.get()
         StoreSnapshot(latestConversationId = db.conversations().mostRecent()?.id, sweptStreaming = swept)
     }
 
-    override fun conversations(): Flow<List<ConversationSummary>> =
-        db.conversations().observeAlive().map { rows ->
-            rows.map { row ->
-                ConversationSummary(
-                    id = row.id,
-                    title = row.title,
-                    lastActivityAt = row.lastMessageAt ?: row.createdAt,
-                    messageCount = row.messageCount,
-                )
-            }
-        }
+    override fun conversations(): Flow<List<ConversationSummary>> = summaries(db.conversations().observeAlive())
+
+    override fun archivedConversations(): Flow<List<ConversationSummary>> =
+        summaries(db.conversations().observeArchived())
 
     override suspend fun createConversation(): String = withContext(writer) {
         val at = now()
@@ -66,13 +65,21 @@ internal class RoomChatStore(
                 messageCount = 0,
                 syncVersion = 1,
                 rev = Uuid7.revision(),
-                originDevice = deviceId(),
+                originDevice = device.get(),
                 createdAt = at,
                 updatedAt = at,
                 deletedAt = null,
             ),
         )
         id
+    }
+
+    override suspend fun archiveConversation(id: String): Unit = withContext(writer) {
+        db.conversations().setArchived(id, true, now(), Uuid7.revision())
+    }
+
+    override suspend fun unarchiveConversation(id: String): Unit = withContext(writer) {
+        db.conversations().setArchived(id, false, now(), Uuid7.revision())
     }
 
     override suspend fun deleteConversation(id: String): Unit = withContext(writer) {
@@ -104,39 +111,56 @@ internal class RoomChatStore(
         }
     }
 
+    override suspend fun search(query: String): List<SearchHit> = withContext(writer) {
+        val expression = SearchText.matchExpression(query) ?: return@withContext emptyList()
+        index.search(expression)
+    }
+
     override suspend fun beginTurn(conversationId: String, userText: String, model: String?): TurnRefs =
         withContext(writer) {
-            val at = now()
-            val conversation = db.conversations().find(conversationId)
-            val parentId = conversation?.activeLeafMessageId
-            val userMessageId = Uuid7.next(at)
-            db.messages().insert(
-                messageEntity(
-                    id = userMessageId,
-                    conversationId = conversationId,
-                    parentId = parentId,
-                    role = ROLE_USER,
-                    siblingIndex = db.messages().siblingCount(conversationId, parentId),
-                    status = StoredStatus.COMPLETE,
-                    at = at,
-                    model = model,
-                ),
-            )
-            db.parts().insert(partEntity(Uuid7.next(at), userMessageId, USER_TEXT_INDEX, KIND_TEXT, userText, at))
-            if (conversation != null && conversation.titleAuto && conversation.title.isBlank()) {
-                db.conversations().retitleIfAuto(conversationId, titleOf(userText), at, Uuid7.revision())
+            db.withTransaction {
+                val at = now()
+                val conversation = db.conversations().find(conversationId)
+                val parentId = conversation?.activeLeafMessageId
+                val userMessageId = Uuid7.next(at)
+                db.messages().insert(
+                    messageRow(
+                        id = userMessageId,
+                        conversationId = conversationId,
+                        parentId = parentId,
+                        role = ROLE_USER,
+                        siblingIndex = db.messages().siblingCount(conversationId, parentId),
+                        status = StoredStatus.COMPLETE,
+                        at = at,
+                        model = model,
+                        originDevice = device.get(),
+                    ),
+                )
+                val userPartId = Uuid7.next(at)
+                db.parts().insert(partRow(userPartId, userMessageId, USER_TEXT_INDEX, KIND_TEXT, userText, at))
+                index.write(userPartId)
+                if (conversation != null && conversation.titleAuto && conversation.title.isBlank()) {
+                    db.conversations().retitleIfAuto(conversationId, titleOf(userText), at, Uuid7.revision())
+                }
+                val assistant = insertAssistant(conversationId, userMessageId, model, at)
+                db.conversations().touch(conversationId, at, 2, assistant.assistantMessageId, Uuid7.revision())
+                assistant.copy(userMessageId = userMessageId)
             }
-            val assistant = insertAssistant(conversationId, userMessageId, model, at)
-            db.conversations().touch(conversationId, at, 2, assistant.assistantMessageId, Uuid7.revision())
-            assistant.copy(userMessageId = userMessageId)
         }
 
     override suspend fun beginRetry(conversationId: String, parentMessageId: String?, model: String?): TurnRefs =
-        withContext(writer) { insertAssistant(conversationId, parentMessageId, model, now()) }
+        withContext(writer) {
+            db.withTransaction { insertAssistant(conversationId, parentMessageId, model, now()) }
+        }
 
     override fun appendText(textPartId: String, delta: String) {
-        val at = now()
-        enqueue { db.parts().append(textPartId, delta, at) }
+        enqueue {
+            val at = now()
+            db.withTransaction {
+                db.parts().append(textPartId, delta, at)
+                index.write(textPartId)
+            }
+        }
     }
 
     override fun appendReasoning(reasoningPartId: String, delta: String) {
@@ -179,17 +203,19 @@ internal class RoomChatStore(
     }
 
     override suspend fun softDeleteMessage(messageId: String): Int = withContext(writer) {
-        val target = db.messages().find(messageId) ?: return@withContext 0
-        val at = now()
-        val rev = Uuid7.revision()
-        val ids = db.messages().subtreeIds(messageId)
-        if (ids.isEmpty()) return@withContext 0
-        db.messages().softDelete(ids, at, rev)
-        db.messages().deleteSearchRows(ids)
-        val leaf = db.conversations().find(target.conversationId)?.activeLeafMessageId
-        val nextLeaf = if (leaf != null && leaf in ids) target.parentId else leaf
-        db.conversations().retouchAfterDelete(target.conversationId, nextLeaf, at, rev)
-        ids.size
+        db.withTransaction {
+            val target = db.messages().find(messageId) ?: return@withTransaction 0
+            val at = now()
+            val rev = Uuid7.revision()
+            val ids = db.messages().subtreeIds(messageId)
+            if (ids.isEmpty()) return@withTransaction 0
+            db.messages().softDelete(ids, at, rev)
+            index.remove(ids)
+            val leaf = db.conversations().find(target.conversationId)?.activeLeafMessageId
+            val nextLeaf = if (leaf != null && leaf in ids) target.parentId else leaf
+            db.conversations().retouchAfterDelete(target.conversationId, nextLeaf, at, rev)
+            ids.size
+        }
     }
 
     /** 写任务入队；`quiesce` 靠这些句柄等到真正提交完，而不是只等一个空任务。 */
@@ -220,7 +246,7 @@ internal class RoomChatStore(
     ): TurnRefs {
         val assistantId = Uuid7.next(at)
         db.messages().insert(
-            messageEntity(
+            messageRow(
                 id = assistantId,
                 conversationId = conversationId,
                 parentId = parentId,
@@ -229,12 +255,14 @@ internal class RoomChatStore(
                 status = StoredStatus.STREAMING,
                 at = at,
                 model = model,
+                originDevice = device.get(),
             ),
         )
         val reasoningPartId = Uuid7.next(at)
-        db.parts().insert(partEntity(reasoningPartId, assistantId, ASSISTANT_REASONING_INDEX, KIND_REASONING, "", at))
+        db.parts().insert(partRow(reasoningPartId, assistantId, ASSISTANT_REASONING_INDEX, KIND_REASONING, "", at))
         val textPartId = Uuid7.next(at)
-        db.parts().insert(partEntity(textPartId, assistantId, ASSISTANT_TEXT_INDEX, KIND_TEXT, "", at))
+        db.parts().insert(partRow(textPartId, assistantId, ASSISTANT_TEXT_INDEX, KIND_TEXT, "", at))
+        index.write(textPartId)
         db.conversations().touch(conversationId, at, 1, assistantId, Uuid7.revision())
         return TurnRefs(
             conversationId = conversationId,
@@ -245,67 +273,6 @@ internal class RoomChatStore(
         )
     }
 
-    private suspend fun messageEntity(
-        id: String,
-        conversationId: String,
-        parentId: String?,
-        role: String,
-        siblingIndex: Long,
-        status: StoredStatus,
-        at: Long,
-        model: String?,
-    ): MessageEntity = MessageEntity(
-        id = id,
-        conversationId = conversationId,
-        parentId = parentId,
-        role = role,
-        siblingIndex = siblingIndex,
-        status = status.wire,
-        finishReason = null,
-        errorJson = null,
-        providerId = PROVIDER_ID,
-        modelId = model,
-        truncated = false,
-        syncVersion = 1,
-        rev = Uuid7.revision(),
-        originDevice = deviceId(),
-        createdAt = at,
-        updatedAt = at,
-        deletedAt = null,
-    )
-
-    private fun partEntity(id: String, messageId: String, index: Long, kind: String, body: String, at: Long) =
-        MessagePartEntity(
-            id = id,
-            messageId = messageId,
-            partIndex = index,
-            kind = kind,
-            body = body,
-            metaJson = null,
-            truncated = false,
-            createdAt = at,
-            updatedAt = at,
-        )
-
-    /** 标题：折叠空白，按码点截 24 字，超出加省略号（与 Windows 端同一规则）。 */
-    private fun titleOf(text: String): String {
-        val folded = text.replace(WHITESPACE, " ").trim()
-        val points = folded.codePoints().toArray()
-        if (points.size <= TITLE_LIMIT) return folded
-        return String(points, 0, TITLE_LIMIT) + "…"
-    }
-
-    private suspend fun deviceId(): String {
-        cachedDeviceId?.let { return it }
-        val stored = db.settings().value(KEY_DEVICE_ID)
-        val id = stored?.trim('"') ?: Uuid7.next(now())
-        if (stored == null) {
-            db.settings().put(AppSettingEntity(key = KEY_DEVICE_ID, valueJson = "\"$id\"", updatedAt = now()))
-        }
-        cachedDeviceId = id
-        return id
-    }
-
     private companion object {
         const val ROLE_USER = "user"
         const val ROLE_ASSISTANT = "assistant"
@@ -314,14 +281,78 @@ internal class RoomChatStore(
         const val USER_TEXT_INDEX = 0L
         const val ASSISTANT_REASONING_INDEX = 0L
         const val ASSISTANT_TEXT_INDEX = 1L
-        const val TITLE_LIMIT = 24
-        const val KEY_DEVICE_ID = "sync.device_id"
         const val PROVIDER_ID = "openai_compatible"
         const val DEFAULT_CURRENCY = "USD"
-        val WHITESPACE = Regex("\\s+")
 
         fun newWriter(): CoroutineDispatcher =
             Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "neochat-db-writer") }
                 .asCoroutineDispatcher()
     }
 }
+
+/** 库里的会话行 → 列表用的一行。 */
+private fun summaries(source: Flow<List<ConversationEntity>>): Flow<List<ConversationSummary>> =
+    source.map { rows ->
+        rows.map { row ->
+            ConversationSummary(
+                id = row.id,
+                title = row.title,
+                lastActivityAt = row.lastMessageAt ?: row.createdAt,
+                messageCount = row.messageCount,
+            )
+        }
+    }
+
+/** 一条消息行；`rev` 与 `sync_version` 为将来同步留位。 */
+private fun messageRow(
+    id: String,
+    conversationId: String,
+    parentId: String?,
+    role: String,
+    siblingIndex: Long,
+    status: StoredStatus,
+    at: Long,
+    model: String?,
+    originDevice: String,
+): MessageEntity = MessageEntity(
+    id = id,
+    conversationId = conversationId,
+    parentId = parentId,
+    role = role,
+    siblingIndex = siblingIndex,
+    status = status.wire,
+    finishReason = null,
+    errorJson = null,
+    providerId = "openai_compatible",
+    modelId = model,
+    truncated = false,
+    syncVersion = 1,
+    rev = Uuid7.revision(),
+    originDevice = originDevice,
+    createdAt = at,
+    updatedAt = at,
+    deletedAt = null,
+)
+
+private fun partRow(id: String, messageId: String, partIndex: Long, kind: String, body: String, at: Long) =
+    MessagePartEntity(
+        id = id,
+        messageId = messageId,
+        partIndex = partIndex,
+        kind = kind,
+        body = body,
+        metaJson = null,
+        truncated = false,
+        createdAt = at,
+        updatedAt = at,
+    )
+
+/** 标题：折叠空白，按码点截 24 字，超出加省略号（与 Windows 端同一规则）。 */
+private fun titleOf(text: String): String {
+    val folded = text.replace(TITLE_WHITESPACE, " ").trim()
+    val points = folded.codePoints().toArray()
+    return if (points.size <= TITLE_LIMIT) folded else String(points, 0, TITLE_LIMIT) + "…"
+}
+
+private const val TITLE_LIMIT = 24
+private val TITLE_WHITESPACE = Regex("\\s+")

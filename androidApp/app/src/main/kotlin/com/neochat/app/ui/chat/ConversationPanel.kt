@@ -4,6 +4,7 @@ package com.neochat.app.ui.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -78,16 +81,22 @@ internal sealed interface ConversationTime {
 
 /**
  * 会话列表面板：系统返回键直接关闭（用全屏 Dialog 承载，不引入导航框架），
- * 顶栏左侧是返回键、右侧是新建键，中间是标题；行内右侧是删除键。
+ * 顶栏左侧是返回键、右侧是新建键，中间是标题；行内右侧是删除键，行上长按给出"归档"菜单。
+ *
+ * 归档不删数据：只把 `conversation.archived` 置 1，列表默认视图不再显示；
+ * 顶栏的"已归档"入口切到归档视图，可以在那里取消归档。
  */
 @Composable
 public fun ConversationPanel(
     conversations: List<ConversationSummary>,
+    archived: List<ConversationSummary>,
     activeId: String?,
     now: Long,
     onSelect: (String) -> Unit,
     onNew: () -> Unit,
     onDelete: (String) -> Unit,
+    onArchive: (String) -> Unit,
+    onUnarchive: (String) -> Unit,
     onClose: () -> Unit,
 ) {
     Dialog(
@@ -96,11 +105,14 @@ public fun ConversationPanel(
     ) {
         PanelBody(
             conversations = conversations,
+            archived = archived,
             activeId = activeId,
             now = now,
             onSelect = onSelect,
             onNew = onNew,
             onDelete = onDelete,
+            onArchive = onArchive,
+            onUnarchive = onUnarchive,
             onClose = onClose,
         )
     }
@@ -109,21 +121,32 @@ public fun ConversationPanel(
 @Composable
 private fun PanelBody(
     conversations: List<ConversationSummary>,
+    archived: List<ConversationSummary>,
     activeId: String?,
     now: Long,
     onSelect: (String) -> Unit,
     onNew: () -> Unit,
     onDelete: (String) -> Unit,
+    onArchive: (String) -> Unit,
+    onUnarchive: (String) -> Unit,
     onClose: () -> Unit,
 ) {
     val colors = LocalNeoColors.current
     var pendingDelete by remember { mutableStateOf<ConversationSummary?>(null) }
+    var showArchived by remember { mutableStateOf(false) }
+    val rows = if (showArchived) archived else conversations
     Box(modifier = Modifier.fillMaxSize().background(colors.pageFallback)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            PanelHeader(onNew = onNew, onClose = onClose)
+            PanelHeader(
+                archivedCount = archived.size,
+                showArchived = showArchived,
+                onToggleArchived = { showArchived = !showArchived },
+                onNew = onNew,
+                onClose = onClose,
+            )
             HorizontalDivider(thickness = Stroke.hairline, color = colors.rule)
-            if (conversations.isEmpty()) {
-                PanelEmptyState()
+            if (rows.isEmpty()) {
+                PanelEmptyState(archived = showArchived)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -133,13 +156,16 @@ private fun PanelBody(
                     ),
                     verticalArrangement = Arrangement.spacedBy(ListMetrics.rowGap),
                 ) {
-                    items(items = conversations, key = { it.id }) { row ->
+                    items(items = rows, key = { it.id }) { row ->
                         ConversationRow(
                             summary = row,
                             time = ConversationTime.of(row.lastActivityAt, now),
                             selected = row.id == activeId,
+                            archived = showArchived,
                             onClick = { onSelect(row.id) },
                             onDelete = { pendingDelete = row },
+                            onArchive = { onArchive(row.id) },
+                            onUnarchive = { onUnarchive(row.id) },
                         )
                     }
                 }
@@ -158,7 +184,13 @@ private fun PanelBody(
 }
 
 @Composable
-private fun PanelHeader(onNew: () -> Unit, onClose: () -> Unit) {
+private fun PanelHeader(
+    archivedCount: Int,
+    showArchived: Boolean,
+    onToggleArchived: () -> Unit,
+    onNew: () -> Unit,
+    onClose: () -> Unit,
+) {
     val colors = LocalNeoColors.current
     Row(
         modifier = Modifier
@@ -170,10 +202,22 @@ private fun PanelHeader(onNew: () -> Unit, onClose: () -> Unit) {
     ) {
         PanelKey(icon = R.drawable.ic_close, description = stringResource(R.string.conversations_close), onClick = onClose)
         Text(
-            text = stringResource(R.string.conversations_title),
+            text = stringResource(
+                if (showArchived) R.string.conversations_archived_title else R.string.conversations_title,
+            ),
             style = neoStyle(TypeScale.titleMedium).copy(color = colors.ink),
             modifier = Modifier.weight(1f),
         )
+        TextButton(onClick = onToggleArchived) {
+            Text(
+                text = if (showArchived) {
+                    stringResource(R.string.conversations_archived_back)
+                } else {
+                    stringResource(R.string.conversations_archived_open) + " $archivedCount"
+                },
+                style = neoStyle(TypeScale.labelLarge).copy(color = colors.inkMuted),
+            )
+        }
         PanelKey(
             icon = R.drawable.ic_new_chat,
             description = stringResource(R.string.chat_new),
@@ -206,50 +250,76 @@ private fun ConversationRow(
     summary: ConversationSummary,
     time: ConversationTime,
     selected: Boolean,
+    archived: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onArchive: () -> Unit,
+    onUnarchive: () -> Unit,
 ) {
     val colors = LocalNeoColors.current
     val deleteLabel = stringResource(R.string.conversations_delete)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = ListMetrics.rowMinHeight)
-            .clip(RoundedCornerShape(ListMetrics.rowRadius))
-            .background(if (selected) colors.accentContainer else colors.pageFallback)
-            .clickable(onClick = onClick)
-            .padding(start = ListMetrics.rowPaddingH, top = ListMetrics.rowPaddingV)
-            .padding(bottom = ListMetrics.rowPaddingV),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = summary.title.ifBlank { stringResource(R.string.conversations_untitled) },
-                style = neoStyle(TypeScale.titleMedium).copy(
-                    color = if (summary.title.isBlank()) colors.inkFaint else colors.ink,
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(ListMetrics.rowTitleGap))
-            Text(
-                text = timeLabel(time),
-                style = neoStyle(TypeScale.bodySmall).copy(color = colors.inkFaint),
-                maxLines = 1,
-            )
-        }
-        Box(
+    val archiveLabel = stringResource(R.string.conversations_archive)
+    val unarchiveLabel = stringResource(R.string.conversations_unarchive)
+    var menuOpen by remember { mutableStateOf(false) }
+    Box {
+        Row(
             modifier = Modifier
-                .size(ListMetrics.deleteKey)
-                .semantics { contentDescription = deleteLabel }
-                .clickable(onClick = onDelete),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .heightIn(min = ListMetrics.rowMinHeight)
+                .clip(RoundedCornerShape(ListMetrics.rowRadius))
+                .background(if (selected) colors.accentContainer else colors.pageFallback)
+                .combinedClickable(onClick = onClick, onLongClick = { menuOpen = true })
+                .padding(start = ListMetrics.rowPaddingH, top = ListMetrics.rowPaddingV)
+                .padding(bottom = ListMetrics.rowPaddingV),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_trash),
-                contentDescription = null,
-                modifier = Modifier.size(ListMetrics.deleteIcon),
-                tint = colors.inkFaint,
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = summary.title.ifBlank { stringResource(R.string.conversations_untitled) },
+                    style = neoStyle(TypeScale.titleMedium).copy(
+                        color = if (summary.title.isBlank()) colors.inkFaint else colors.ink,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(ListMetrics.rowTitleGap))
+                Text(
+                    text = timeLabel(time),
+                    style = neoStyle(TypeScale.bodySmall).copy(color = colors.inkFaint),
+                    maxLines = 1,
+                )
+            }
+            if (archived) {
+                TextButton(onClick = onUnarchive) {
+                    Text(
+                        text = unarchiveLabel,
+                        style = neoStyle(TypeScale.labelMedium).copy(color = colors.inkMuted),
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(ListMetrics.deleteKey)
+                        .semantics { contentDescription = deleteLabel }
+                        .clickable(onClick = onDelete),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_trash),
+                        contentDescription = null,
+                        modifier = Modifier.size(ListMetrics.deleteIcon),
+                        tint = colors.inkFaint,
+                    )
+                }
+            }
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(if (archived) unarchiveLabel else archiveLabel) },
+                onClick = {
+                    menuOpen = false
+                    if (archived) onUnarchive() else onArchive()
+                },
             )
         }
     }
@@ -264,7 +334,7 @@ private fun timeLabel(time: ConversationTime): String = when (time) {
 }
 
 @Composable
-private fun PanelEmptyState() {
+private fun PanelEmptyState(archived: Boolean) {
     val colors = LocalNeoColors.current
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = ListMetrics.panelPaddingH),
@@ -279,12 +349,16 @@ private fun PanelEmptyState() {
         )
         Spacer(Modifier.height(ListMetrics.emptyGap))
         Text(
-            text = stringResource(R.string.conversations_empty_title),
+            text = stringResource(
+                if (archived) R.string.conversations_archived_empty_title else R.string.conversations_empty_title,
+            ),
             style = neoStyle(TypeScale.titleMedium).copy(color = colors.inkMuted),
         )
         Spacer(Modifier.height(Space.xs))
         Text(
-            text = stringResource(R.string.conversations_empty_hint),
+            text = stringResource(
+                if (archived) R.string.conversations_archived_empty_hint else R.string.conversations_empty_hint,
+            ),
             style = neoStyle(TypeScale.bodySmall).copy(color = colors.inkFaint),
         )
     }

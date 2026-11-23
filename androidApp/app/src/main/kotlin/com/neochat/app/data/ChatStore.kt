@@ -36,6 +36,14 @@ public data class ConversationSummary(
     val messageCount: Long,
 )
 
+/** 全文搜索的一条命中；`snippet` 是 FTS5 的高亮片段（命中词两侧加 `[` `]`）。 */
+public data class SearchHit(
+    val messageId: String,
+    val conversationId: String,
+    val partIndex: Long,
+    val snippet: String,
+)
+
 /** 冷启动结果：上一个会话（没有则为 null）+ 本次扫掉的残留 `streaming` 行数。 */
 public data class StoreSnapshot(val latestConversationId: String?, val sweptStreaming: Int)
 
@@ -60,11 +68,26 @@ public interface ChatStore {
     /** 冷启动：把上次残留的 `streaming` 扫成 `aborted`，返回最近的会话 id。 */
     suspend fun open(): StoreSnapshot
 
+    /** 列表默认视图：未归档的会话。 */
     fun conversations(): Flow<List<ConversationSummary>>
+
+    /** "已归档"入口用：`archived = 1` 的会话。 */
+    fun archivedConversations(): Flow<List<ConversationSummary>>
 
     suspend fun createConversation(): String
 
+    /** 归档 / 取消归档；只动 `conversation.archived`，消息与 FTS 行都不碰。 */
+    suspend fun archiveConversation(id: String)
+
+    suspend fun unarchiveConversation(id: String)
+
     suspend fun deleteConversation(id: String)
+
+    /**
+     * 全文搜索。查询串与写入共用 [SearchText] 的分词，空查询或环境没有 FTS5 时返回空列表。
+     * 结果按 `message_id`（UUIDv7，按时间递增）与 part 序号排序，即消息的先后顺序。
+     */
+    suspend fun search(query: String): List<SearchHit>
 
     /** 从 `active_leaf_message_id` 回溯出活跃分支，按时间正序返回。 */
     suspend fun loadMessages(conversationId: String): List<StoredMessage>

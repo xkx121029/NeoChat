@@ -111,8 +111,9 @@ internal class SchemaCallback(private val context: Context) : RoomDatabase.Callb
     }
 
     /**
-     * 装机路径：Android 的 SQLite 从 API 24 起编入 FTS5，`minSdk 26` 一定有。
-     * 单测用的 Robolectric 自带 SQLite 没编 FTS5，只放行这一种失败，其余照常抛。
+     * FTS5 是设备侧能力，不是 API 级别的承诺：AOSP API 33 模拟器的 SQLite 3.32.2 就没有编 FTS5
+     * （`sqlite3` 直接报 `no such module: fts5`），Robolectric 也没有。
+     * 因此这里对"缺模块"只放行不崩，`MessageIndex` 探测不到虚表时整条 FTS 路径静默跳过。
      */
     private fun createFullTextTable(db: SupportSQLiteDatabase) {
         val ddl = context.resources.openRawResource(R.raw.schema_fts5).bufferedReader().use { it.readText() }

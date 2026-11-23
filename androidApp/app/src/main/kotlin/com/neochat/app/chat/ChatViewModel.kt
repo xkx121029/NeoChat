@@ -42,10 +42,14 @@ public class ChatViewModel(
     private val mutableState: MutableStateFlow<ChatUiState> = MutableStateFlow(machine.state)
     private val mutableConversations: MutableStateFlow<List<ConversationSummary>> =
         MutableStateFlow(emptyList())
+    private val mutableArchived: MutableStateFlow<List<ConversationSummary>> = MutableStateFlow(emptyList())
 
     public val state: StateFlow<ChatUiState> = mutableState.asStateFlow()
 
     public val conversations: StateFlow<List<ConversationSummary>> = mutableConversations.asStateFlow()
+
+    /** "已归档"入口：`conversation.archived = 1` 的那些会话。 */
+    public val archivedConversations: StateFlow<List<ConversationSummary>> = mutableArchived.asStateFlow()
 
     private var activeRun: ChatRun? = null
     private var activeTurn: TurnRefs? = null
@@ -55,6 +59,7 @@ public class ChatViewModel(
 
     init {
         scope.launch { store.conversations().collect { mutableConversations.value = it } }
+        scope.launch { store.archivedConversations().collect { mutableArchived.value = it } }
         scope.launch { restoreLast() }
     }
 
@@ -162,6 +167,25 @@ public class ChatViewModel(
         detach()
         publish(machine.reset())
         scope.launch { showConversation(id) }
+    }
+
+    /**
+     * 归档当前会话等于把它从工作区收起来：和删除一样先撤界面、再开一段空白会话，
+     * 区别只是库里 `archived=1`，消息与全文索引都留着。
+     */
+    public fun archiveConversation(id: String) {
+        scope.launch {
+            runCatching { store.archiveConversation(id) }
+            if (id != conversationId) return@launch
+            detach()
+            conversationId = null
+            databaseIds.clear()
+            publish(machine.reset())
+        }
+    }
+
+    public fun unarchiveConversation(id: String) {
+        scope.launch { runCatching { store.unarchiveConversation(id) } }
     }
 
     public fun deleteConversation(id: String) {
