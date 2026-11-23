@@ -5,6 +5,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using NeoChat.Windows.Design;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using NeoChat.Windows.Core.Chat;
@@ -31,7 +33,7 @@ public sealed partial class ChatPage : Page
     private NeoChatDatabase? _database;
     private SqliteConversationRepository? _repository;
     private ProviderSettings _settings;
-    private bool _pinnedToBottom = true;
+    private readonly ScrollFollowState _follow = new(Tokens.Layout.FollowThreshold);
     private bool _syncingSelection;
     private double _bubbleMaxWidth;
 
@@ -67,6 +69,8 @@ public sealed partial class ChatPage : Page
     {
         // Y34 行高 1.45 无法表达：WinUI 的 TextBox 不暴露 LineHeight（XAML 里写它会让编译器直接崩），
         // 字号 15 仍来自令牌，行高交给控件默认值，已记入偏差清单。
+        ThemeRuntime.Changed += OnThemeChanged;
+        ApplyTheme();
         UpdateStatusIndicator();
         UpdateSendKey();
         UpdateBubbleWidth();
@@ -115,6 +119,7 @@ public sealed partial class ChatPage : Page
 
     private void OnPageUnloaded(object sender, RoutedEventArgs e)
     {
+        ThemeRuntime.Changed -= OnThemeChanged;
         ViewModel.Dispose();
         _repository?.Dispose();
         _repository = null;
@@ -128,6 +133,7 @@ public sealed partial class ChatPage : Page
             case nameof(ChatSessionViewModel.Status):
                 UpdateStatusIndicator();
                 UpdateSendKey();
+                UpdateActionRows();
                 FollowIfPinned();
 
                 // A finished turn changes a row's title or time, so the rail is rebuilt once the session
@@ -151,6 +157,7 @@ public sealed partial class ChatPage : Page
     private void OnMessagesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         UpdateBubbleWidth();
+        UpdateActionRows();
         FollowIfPinned();
     }
 
@@ -218,6 +225,8 @@ public sealed partial class ChatPage : Page
             }
 
             ApplyAssistantRow(element, item);
+            // 流式时每个 token 都会走到这里：跟随由状态机决定，用户上滚过就不再打扰。
+            FollowIfPinned();
         };
         item.PropertyChanged += handler;
         _tracked[element] = (item, handler);
@@ -289,6 +298,7 @@ public sealed partial class ChatPage : Page
         {
             chevron.Glyph = item.IsReasoningExpanded ? "\uE70E" : "\uE70D";
         }
+
     }
 
     private void OnThinkingRowTapped(object sender, TappedRoutedEventArgs e)
@@ -296,6 +306,177 @@ public sealed partial class ChatPage : Page
         if (sender is FrameworkElement { DataContext: ChatMessageItem message })
         {
             message.IsReasoningExpanded = !message.IsReasoningExpanded;
+        }
+    }
+
+    // ---- 消息操作（Y27/Y28：复制全文 / 重新生成 / 软删除） ------------------------------
+
+    private const string CopyGlyph = "";
+    private const string CopiedGlyph = "";
+
+    private void OnAssistantPointerEntered(object sender, PointerRoutedEventArgs e) => SetActionsVisible(sender, true);
+
+    private void OnAssistantPointerExited(object sender, PointerRoutedEventArgs e) => SetActionsVisible(sender, false);
+
+    private static void SetActionsVisible(object sender, bool visible)
+    {
+        if (sender is FrameworkElement root && root.FindName("MessageActions") is FrameworkElement actions)
+        {
+            actions.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>
+    /// Y27：一轮只给最后一条正文露出操作行（流式中不给）。其余回复靠悬停取回同一行，
+    /// 所以"看得见"不是发现功能的唯一途径；这里每次只留一条可见，旧回合不会堆着按钮。
+    /// </summary>
+    private void UpdateActionRows()
+    {
+        for (var index = 0; index < ViewModel.Messages.Count; index++)
+        {
+            if (MessagesRepeater.TryGetElement(index) is not FrameworkElement element ||
+                element.FindName("MessageActions") is not FrameworkElement actions)
+            {
+                continue;
+            }
+
+            var item = ViewModel.Messages[index];
+            var isTail = index == ViewModel.Messages.Count - 1 && item.IsAssistant && !item.IsStreaming;
+            actions.Visibility = isTail ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    private void OnCopyMessageClick(object sender, RoutedEventArgs e)
+    {
+        if (ItemFor(sender) is not { } item)
+        {
+            return;
+        }
+
+        ClipboardToItem(item);
+        ConfirmCopy(RootFor(sender)?.FindName("CopyMessageGlyph") as FontIcon);
+    }
+
+    private void OnRegenerateClick(object sender, RoutedEventArgs e)
+    {
+        if (ItemFor(sender) is { } item)
+        {
+            _ = ViewModel.RegenerateAsync(item);
+        }
+    }
+
+    private void OnDeleteMessageClick(object sender, RoutedEventArgs e)
+    {
+        if (ItemFor(sender) is { } item)
+        {
+            ViewModel.DeleteMessage(item);
+        }
+    }
+
+    /// <summary>Right click (or long press) on a reply opens the same four things as a menu.</summary>
+    private void OnAssistantRightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement root || ItemFor(sender) is not { } item)
+        {
+            return;
+        }
+
+        var flyout = new MenuFlyout();
+        flyout.Items.Add(MenuItem("复制全文", () => ClipboardToItem(item)));
+
+        // 这条消息里的每一个代码块都能单独复制，与代码井右上角的复制键同一个结果。
+        foreach (var code in MessageContent.CodeBlocks(item.Text))
+        {
+            var text = code;
+            var label = text.Length == 0 ? "（空代码块）" : text;
+            flyout.Items.Add(MenuItem("复制代码块：" + Preview(label), () => ClipboardWriter.Write(text)));
+        }
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        flyout.Items.Add(MenuItem("重新生成", () => _ = ViewModel.RegenerateAsync(item)));
+        flyout.Items.Add(MenuItem("删除", () => ViewModel.DeleteMessage(item)));
+
+        flyout.ShowAt(root, new FlyoutShowOptions { Position = e.GetPosition(root) });
+        e.Handled = true;
+    }
+
+    private static MenuFlyoutItem MenuItem(string label, Action action)
+    {
+        var item = new MenuFlyoutItem { Text = label };
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    private static string Preview(string code)
+    {
+        var firstLine = code.Split('\n')[0].Trim();
+        return firstLine.Length == 0 ? "（空代码块）" : firstLine;
+    }
+
+    private static void ClipboardToItem(ChatMessageItem item) => ClipboardWriter.Write(item.Text);
+
+    /// <summary>A-N02：复制成功后图标交叉切换，短暂停留再换回（停留值是推断值）。</summary>
+    private void ConfirmCopy(FontIcon? glyph)
+    {
+        if (glyph is null)
+        {
+            return;
+        }
+
+        glyph.Glyph = CopiedGlyph;
+        var timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(Tokens.Layout.CopyConfirmHoldMilliseconds);
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) =>
+        {
+            glyph.Glyph = CopyGlyph;
+            timer.Stop();
+        };
+        timer.Start();
+    }
+
+    private ChatMessageItem? ItemFor(object sender) =>
+        RootFor(sender) is { } root && _tracked.TryGetValue(root, out var entry) ? entry.Item : null;
+
+    /// <summary>The repeater row element a handler belongs to, whichever child raised the event.</summary>
+    private FrameworkElement? RootFor(object sender)
+    {
+        for (var current = sender as DependencyObject; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is FrameworkElement element && _tracked.ContainsKey(element))
+            {
+                return element;
+            }
+        }
+
+        return sender as FrameworkElement;
+    }
+
+    // ---- 主题（跟随系统，运行中也切换） ------------------------------------------------
+
+    private void OnThemeChanged(object? sender, EventArgs e) => ApplyTheme();
+
+    /// <summary>
+    /// The palette itself is repainted in place by <see cref="ThemeRuntime"/>; what is left here is the
+    /// platform half (default control chrome, flyouts, dialogs) and the four state brushes the send key
+    /// keeps in its own resource dictionary, which are copies of a Colour token rather than a shared brush.
+    /// </summary>
+    private void ApplyTheme()
+    {
+        // 平台自带的那部分（滚动条、右键菜单、对话框）只认 ElementTheme，所以页面主题跟着令牌一起切。
+        RequestedTheme = ThemeRuntime.Current == AppTheme.Dark ? ElementTheme.Dark : ElementTheme.Light;
+
+        PaintLocalBrush("ButtonBackgroundPointerOver", "SeedPressed");
+        PaintLocalBrush("ButtonBackgroundPressed", "SeedPressed");
+        PaintLocalBrush("ButtonBackgroundDisabled", "SendDisabled");
+        PaintLocalBrush("ButtonForegroundDisabled", "SendForegroundDisabled");
+    }
+
+    private void PaintLocalBrush(string key, string tone)
+    {
+        if (SendKey.Resources is { } resources && resources[key] is SolidColorBrush brush)
+        {
+            brush.Color = ThemePainter.Tone(tone);
         }
     }
 
@@ -373,26 +554,29 @@ public sealed partial class ChatPage : Page
 
     private void OnMessageScrollViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
     {
-        _pinnedToBottom = IsNearBottom();
-        JumpToBottomButton.Visibility = _pinnedToBottom ? Visibility.Collapsed : Visibility.Visible;
+        _follow.OffsetChanged(MessageScroll.VerticalOffset, MessageScroll.ScrollableHeight - MessageScroll.VerticalOffset);
+        UpdateJumpToBottom();
     }
 
-    private bool IsNearBottom() =>
-        MessageScroll.ScrollableHeight - MessageScroll.VerticalOffset <= Tokens.Layout.FollowThreshold;
-
+    /// <summary>New content reached the list: stay glued to the bottom only while the reader is there.</summary>
     private void FollowIfPinned()
     {
-        if (_pinnedToBottom)
+        if (!_follow.ContentChanged())
         {
-            MessageScroll.ChangeView(null, MessageScroll.ScrollableHeight, null, true);
+            return;
         }
+
+        MessageScroll.ChangeView(null, MessageScroll.ScrollableHeight, null, true);
     }
+
+    private void UpdateJumpToBottom() =>
+        JumpToBottomButton.Visibility = _follow.ShowJumpToBottom ? Visibility.Visible : Visibility.Collapsed;
 
     private void OnJumpToBottomClick(object sender, RoutedEventArgs e)
     {
-        _pinnedToBottom = true;
+        _follow.JumpToBottom();
         MessageScroll.ChangeView(null, MessageScroll.ScrollableHeight, null, false);
-        JumpToBottomButton.Visibility = Visibility.Collapsed;
+        UpdateJumpToBottom();
     }
 
     // ---- 错误横幅（ST27） ---------------------------------------------------------------
@@ -540,17 +724,7 @@ public sealed partial class ChatPage : Page
         await dialog.ShowAsync();
     }
 
-    private static void CopyToClipboard(string text)
-    {
-        if (text.Length == 0)
-        {
-            return;
-        }
-
-        var package = new DataPackage();
-        package.SetText(text);
-        Clipboard.SetContent(package);
-    }
+    private static void CopyToClipboard(string text) => ClipboardWriter.Write(text);
 
     // ---- 空态与顶部栏动作 --------------------------------------------------------------
 

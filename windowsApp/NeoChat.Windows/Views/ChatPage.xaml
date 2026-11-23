@@ -10,6 +10,17 @@
 
     <Page.Resources>
 
+        <!-- Y28 消息操作键：36×36、图标 20、静默底（悬停才显行） -->
+        <Style x:Key="MessageActionKeyStyle" TargetType="Button">
+            <Setter Property="Width" Value="{StaticResource LayoutMessageActionSize}" />
+            <Setter Property="Height" Value="{StaticResource LayoutMessageActionSize}" />
+            <Setter Property="Padding" Value="{StaticResource ThicknessZero}" />
+            <Setter Property="Background" Value="{StaticResource BrushTransparent}" />
+            <Setter Property="BorderThickness" Value="{StaticResource ThicknessZero}" />
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
         <!-- §2.1 用户气泡：右对齐、82% 宽上限（MaxWidth 在 code-behind 按 Y11 计算）、lg 圆角、16/8 内边距 -->
         <DataTemplate x:Key="UserMessageTemplate" x:DataType="chat:ChatMessageItem">
             <Border
@@ -30,9 +41,16 @@
             </Border>
         </DataTemplate>
 
-        <!-- §2.1 助手消息：无框全宽正文 + 思考行 + 流式光标 + 中断标记 -->
+        <!-- §2.1 助手消息：无框全宽正文 + 思考行 + 流式光标 + 中断标记 + 操作行（悬停/右键） -->
         <DataTemplate x:Key="AssistantMessageTemplate" x:DataType="chat:ChatMessageItem">
-            <StackPanel Spacing="{StaticResource SpaceXs}">
+            <!-- Background=Transparent 是必须的：没有填充色的 StackPanel 不参与命中测试，
+                 指针进入/右击都不会到达这里，悬停露行与右键菜单就都失效。 -->
+            <StackPanel
+                Background="{StaticResource BrushTransparent}"
+                PointerEntered="OnAssistantPointerEntered"
+                PointerExited="OnAssistantPointerExited"
+                RightTapped="OnAssistantRightTapped"
+                Spacing="{StaticResource SpaceXs}">
 
                 <!-- §3.6 过程行几何：lead 24 / gap 8 / 文字列起点 32 / 单行最小高 32 -->
                 <Grid
@@ -125,6 +143,52 @@
                         Foreground="{StaticResource BrushDanger}"
                         LineHeight="{StaticResource LineHeightBodySmall}"
                         Text="已停止" />
+                </StackPanel>
+
+                <!-- Y27/Y28 操作行：指针进入正文或右键时出现；复制全文 / 重新生成 / 删除 -->
+                <StackPanel
+                    x:Name="MessageActions"
+                    Margin="{StaticResource MarginMessageActions}"
+                    Orientation="Horizontal"
+                    Spacing="{StaticResource LayoutMessageActionGap}"
+                    Visibility="Collapsed">
+                    <Button
+                        x:Name="CopyMessageKey"
+                        AutomationProperties.Name="复制全文"
+                        Click="OnCopyMessageClick"
+                        Style="{StaticResource MessageActionKeyStyle}"
+                        ToolTipService.ToolTip="复制全文">
+                        <FontIcon
+                            x:Name="CopyMessageGlyph"
+                            FontFamily="{StaticResource FontIcon}"
+                            FontSize="{StaticResource LayoutMessageActionIconSize}"
+                            Foreground="{StaticResource BrushInkMuted}"
+                            Glyph="&#xE8C8;" />
+                    </Button>
+                    <Button
+                        x:Name="RegenerateKey"
+                        AutomationProperties.Name="重新生成"
+                        Click="OnRegenerateClick"
+                        Style="{StaticResource MessageActionKeyStyle}"
+                        ToolTipService.ToolTip="重新生成">
+                        <FontIcon
+                            FontFamily="{StaticResource FontIcon}"
+                            FontSize="{StaticResource LayoutMessageActionIconSize}"
+                            Foreground="{StaticResource BrushInkMuted}"
+                            Glyph="&#xE72C;" />
+                    </Button>
+                    <Button
+                        x:Name="DeleteMessageKey"
+                        AutomationProperties.Name="删除这条回复"
+                        Click="OnDeleteMessageClick"
+                        Style="{StaticResource MessageActionKeyStyle}"
+                        ToolTipService.ToolTip="删除">
+                        <FontIcon
+                            FontFamily="{StaticResource FontIcon}"
+                            FontSize="{StaticResource LayoutMessageActionIconSize}"
+                            Foreground="{StaticResource BrushInkMuted}"
+                            Glyph="&#xE74D;" />
+                    </Button>
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
@@ -272,7 +336,7 @@
                     VerticalAlignment="Center"
                     AutomationProperties.Name="新对话"
                     Background="{StaticResource BrushTransparent}"
-                    BorderThickness="0"
+                    BorderThickness="{StaticResource ThicknessZero}"
                     Click="OnNewConversationClick">
                     <FontIcon
                         FontFamily="{StaticResource FontIcon}"
@@ -538,7 +602,7 @@
                             VerticalAlignment="Top"
                             AutomationProperties.Name="关闭错误提示"
                             Background="{StaticResource BrushTransparent}"
-                            BorderThickness="0"
+                            BorderThickness="{StaticResource ThicknessZero}"
                             Click="OnDismissErrorClick">
                             <FontIcon
                                 FontFamily="{StaticResource FontIcon}"
@@ -571,7 +635,7 @@
                             AcceptsReturn="True"
                             AutomationProperties.Name="消息输入"
                             Background="{StaticResource BrushTransparent}"
-                            BorderThickness="0"
+                            BorderThickness="{StaticResource ThicknessZero}"
                             FontSize="{StaticResource FontSizeComposer}"
                             Foreground="{StaticResource BrushInk}"
                             KeyDown="OnComposerKeyDown"

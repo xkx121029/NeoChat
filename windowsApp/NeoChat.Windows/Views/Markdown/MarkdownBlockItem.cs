@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using NeoChat.Windows.Core.Design;
 using NeoChat.Windows.Core.Render;
-using Windows.UI;
+using NeoChat.Windows.Design;
 
 namespace NeoChat.Windows.Views.Markdown;
 
@@ -47,31 +47,43 @@ internal sealed class MarkdownBlockItem : INotifyPropertyChanged
     }
 }
 
-/// <summary>Brush and text helpers shared by every block view. Values only ever come from <see cref="Tokens"/>.</summary>
+/// <summary>
+/// Brush and text helpers shared by every block view. Colours come from the one theme palette the app
+/// paints (<see cref="ThemePainter"/>), so a block drawn before a theme switch repaints with the rest of
+/// the window: it holds the shared brush instance, not a copy of its colour.
+/// </summary>
 internal static class MarkdownLook
 {
-    internal static SolidColorBrush Brush(uint argb) => new(Color.FromArgb(
-        (byte)((argb >> 24) & 0xFF),
-        (byte)((argb >> 16) & 0xFF),
-        (byte)((argb >> 8) & 0xFF),
-        (byte)(argb & 0xFF)));
+    internal static SolidColorBrush Ink => ThemePainter.Shade("Ink");
 
-    internal static readonly SolidColorBrush Ink = Brush(Tokens.Palette.L09Ink);
-    internal static readonly SolidColorBrush InkMuted = Brush(Tokens.Palette.L10InkMuted);
-    internal static readonly SolidColorBrush InkFaint = Brush(Tokens.Palette.L11InkFaint);
-    internal static readonly SolidColorBrush InkGhost = Brush(Tokens.Palette.L12InkGhost);
-    internal static readonly SolidColorBrush Rule = Brush(Tokens.Palette.L14RuleLight);
-    internal static readonly SolidColorBrush Seed = Brush(Tokens.Palette.A01Seed);
-    internal static readonly SolidColorBrush Danger = Brush(Tokens.Palette.S07Danger);
+    internal static SolidColorBrush InkMuted => ThemePainter.Shade("InkMuted");
 
-    internal static readonly SolidColorBrush CodeWellBg = Brush(Tokens.Palette.M13CodeWellBg);
-    internal static readonly SolidColorBrush CodeWellHeader = Brush(Tokens.Palette.M14CodeWellHeader);
-    internal static readonly SolidColorBrush CodeWellFg = Brush(Tokens.Palette.M15CodeWellFg);
-    internal static readonly SolidColorBrush CodeWellBorder = Brush(Tokens.Palette.M16CodeWellBorder);
-    internal static readonly SolidColorBrush LineNumberFg = Brush(Tokens.Palette.M17LineNumberFg);
+    internal static SolidColorBrush InkFaint => ThemePainter.Shade("InkFaint");
+
+    internal static SolidColorBrush InkGhost => ThemePainter.Shade("InkGhost");
+
+    internal static SolidColorBrush Rule => ThemePainter.Shade("RuleLight");
+
+    internal static SolidColorBrush Seed => ThemePainter.Shade("Seed");
+
+    internal static SolidColorBrush Danger => ThemePainter.Shade("Danger");
+
+    internal static SolidColorBrush CodeWellBg => ThemePainter.Shade("CodeWellBg");
+
+    internal static SolidColorBrush CodeWellHeader => ThemePainter.Shade("CodeWellHeader");
+
+    internal static SolidColorBrush CodeWellFg => ThemePainter.Shade("CodeWellFg");
+
+    internal static SolidColorBrush CodeWellBorder => ThemePainter.Shade("CodeWellBorder");
+
+    internal static SolidColorBrush LineNumberFg => ThemePainter.Shade("LineNumberFg");
+
+    internal static SolidColorBrush Transparent =>
+        (SolidColorBrush)Microsoft.UI.Xaml.Application.Current.Resources["BrushTransparent"];
 
     internal static readonly FontFamily Sans = new(Tokens.Type.SansFamily);
     internal static readonly FontFamily Mono = new(Tokens.Type.MonoFamily);
+    internal static readonly FontFamily IconFont = new(Tokens.Type.IconFamily);
 
     internal static (double Size, double LineHeight) HeadingScale(int level) => level switch
     {

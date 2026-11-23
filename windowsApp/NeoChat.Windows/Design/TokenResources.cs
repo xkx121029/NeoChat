@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using NeoChat.Windows.Core.Design;
 using Microsoft.UI.Text;
-using Windows.UI;
 
 namespace NeoChat.Windows.Design;
 
@@ -17,80 +16,11 @@ internal static class TokenResources
     {
         var dictionary = new ResourceDictionary();
 
-        // §1.1 亮色
-        Add(dictionary, "MistTop", Tokens.Palette.L01MistTop);
-        Add(dictionary, "MistBottom", Tokens.Palette.L02MistBottom);
-        Add(dictionary, "Mist", Tokens.Palette.L03Mist);
-        Add(dictionary, "MistLowest", Tokens.Palette.L04MistLowest);
-        Add(dictionary, "MistLow", Tokens.Palette.L05MistLow);
-        Add(dictionary, "MistContainer", Tokens.Palette.L06MistContainer);
-        Add(dictionary, "MistHigh", Tokens.Palette.L07MistHigh);
-        Add(dictionary, "MistHighest", Tokens.Palette.L08MistHighest);
-        Add(dictionary, "Ink", Tokens.Palette.L09Ink);
-        Add(dictionary, "InkMuted", Tokens.Palette.L10InkMuted);
-        Add(dictionary, "InkFaint", Tokens.Palette.L11InkFaint);
-        Add(dictionary, "InkGhost", Tokens.Palette.L12InkGhost);
-        Add(dictionary, "OutlineLight", Tokens.Palette.L13OutlineLight);
-        Add(dictionary, "RuleLight", Tokens.Palette.L14RuleLight);
-        Add(dictionary, "ShadowInk", Tokens.Palette.L15ShadowInk);
-
-        // §1.3 语义色
-        Add(dictionary, "TextTertiary", Tokens.Palette.M01TextTertiary);
-        Add(dictionary, "TextDisabled", Tokens.Palette.M02TextDisabled);
-        Add(dictionary, "Success", Tokens.Palette.M03Success);
-        Add(dictionary, "Warning", Tokens.Palette.M05Warning);
-        Add(dictionary, "Info", Tokens.Palette.M09Info);
-        Add(dictionary, "Slate", Tokens.Palette.S01Slate);
-        Add(dictionary, "SlateContainer", Tokens.Palette.S02SlateContainer);
-        Add(dictionary, "Danger", Tokens.Palette.S07Danger);
-        Add(dictionary, "OnDanger", Tokens.Palette.S08OnDanger);
-        Add(dictionary, "DangerContainer", Tokens.Palette.S09DangerContainer);
-        Add(dictionary, "OnDangerContainer", Tokens.Palette.S10OnDangerContainer);
-
-        // §1.4 强调色
-        Add(dictionary, "Seed", Tokens.Palette.A01Seed);
-        Add(dictionary, "SeedPressed", Tokens.Palette.A02Pressed);
-        Add(dictionary, "SeedContainer", Tokens.Palette.A03Container);
-        Add(dictionary, "OnSeedContainer", Tokens.Palette.A04OnContainer);
-        Add(dictionary, "OnSeed", Tokens.Palette.A05OnSeed);
-        Add(dictionary, "Bubble", Tokens.Palette.A06Bubble);
-        Add(dictionary, "GlowPrimary", Tokens.Palette.A07Glow);
-        Add(dictionary, "GlowSecondary", Tokens.Palette.A08Haze);
-
-        // §1.5 玻璃（G18：blurEnabled=false，全部走 fallbackFill / 半透明填充）
-        Add(dictionary, "ChromeFill", Tokens.Palette.G01ChromeFill);
-        Add(dictionary, "ChromeFallback", Tokens.Palette.G02ChromeFallbackFill);
-        Add(dictionary, "ChromeHairline", Tokens.Palette.G03ChromeHairline);
-        Add(dictionary, "ChromeRim", Tokens.Palette.G04ChromeRim);
-        Add(dictionary, "CardFill", Tokens.Palette.G11CardFill);
-        Add(dictionary, "CardHairline", Tokens.Palette.G12CardHairline);
-        Add(dictionary, "CardRim", Tokens.Palette.G12CardRim);
-        Add(dictionary, "PillFill", Tokens.Palette.G13PillFill);
-        Add(dictionary, "PillHairline", Tokens.Palette.G14PillHairline);
-        Add(dictionary, "Transparent", Tokens.Palette.Transparent);
-
-        dictionary["BrushPageGradient"] = new LinearGradientBrush
-        {
-            StartPoint = new global::Windows.Foundation.Point(0, 0),
-            EndPoint = new global::Windows.Foundation.Point(0, 1),
-            GradientStops =
-            {
-                new GradientStop { Color = Argb(Tokens.Palette.L01MistTop), Offset = 0 },
-                new GradientStop { Color = Argb(Tokens.Palette.L02MistBottom), Offset = 1 },
-            },
-        };
-        dictionary["BrushGlowPrimary"] = RadialGlow(Tokens.Palette.A07Glow, Tokens.Layout.GlowPrimaryAlpha);
-        dictionary["BrushGlowSecondary"] = RadialGlow(Tokens.Palette.A08Haze, Tokens.Layout.GlowSecondaryAlpha);
-        dictionary["BrushErrorBannerFill"] = new SolidColorBrush(
-            SemiTransparent(Tokens.Palette.S09DangerContainer, Tokens.Border.ErrorBannerFillAlpha));
-        dictionary["BrushErrorBannerBorder"] = new SolidColorBrush(
-            SemiTransparent(Tokens.Palette.A01Seed, Tokens.Border.ErrorBannerAlpha));
-        dictionary["ColorSendDisabled"] = SemiTransparent(Tokens.Palette.L09Ink, Tokens.Layout.SendDisabledAlpha);
-        dictionary["ColorSendForegroundDisabled"] = SemiTransparent(Tokens.Palette.L09Ink, Tokens.Layout.SendForegroundDisabledAlpha);
-        dictionary["BrushSendDisabled"] = new SolidColorBrush(
-            SemiTransparent(Tokens.Palette.L09Ink, Tokens.Layout.SendDisabledAlpha));
-        dictionary["BrushSendForegroundDisabled"] = new SolidColorBrush(
-            SemiTransparent(Tokens.Palette.L09Ink, Tokens.Layout.SendForegroundDisabledAlpha));
+        // §1.1–1.5 颜色：亮/暗两套由 ThemePalette 成对给出，这里只负责写入。ThemePainter 保存它创建的
+        // 每个画刷实例，运行中切换主题时原地改 Color（静态资源引用不会换对象，换对象等于不刷新）。
+        dictionary["ColorTransparent"] = ThemePainter.Argb(Tokens.Palette.Transparent);
+        dictionary["BrushTransparent"] = new SolidColorBrush(ThemePainter.Argb(Tokens.Palette.Transparent));
+        ThemePainter.Paint(dictionary, AppTheme.Light);
 
         // §1.6 字族与字重（只用 300 / 400 / 600 三档，§5 差异 9）
         dictionary["FontSans"] = new FontFamily(Tokens.Type.SansFamily);
@@ -259,6 +189,11 @@ internal static class TokenResources
         AddNumber(dictionary, "SpaceReadingWidth", Tokens.Space.ReadingWidth);
         AddNumber(dictionary, "LayoutRailWidth", Tokens.Layout.RailWidth);
         AddNumber(dictionary, "LayoutRailRowMinHeight", Tokens.Layout.RailRowMinHeight);
+        AddNumber(dictionary, "LayoutMessageActionSize", Tokens.Layout.MessageActionSize);
+        AddNumber(dictionary, "LayoutMessageActionIconSize", Tokens.Layout.MessageActionIconSize);
+        AddNumber(dictionary, "LayoutMessageActionGap", Tokens.Layout.MessageActionGap);
+        AddNumber(dictionary, "LayoutCodeCopyKeySize", Tokens.Layout.CodeCopyKeySize);
+        dictionary["MarginMessageActions"] = new Thickness(0, Tokens.Layout.MessageActionTopGap, 0, 0);
         AddNumber(dictionary, "LayoutOptimisticOpacity", Tokens.Layout.OptimisticBubbleOpacity);
         dictionary["LayoutErrorMaxTextLinesInt"] = (int)Tokens.Layout.ErrorMaxTextLines;
         dictionary["LayoutThinkingWindowLinesInt"] = (int)Tokens.Layout.ThinkingWindowLines;
@@ -277,36 +212,8 @@ internal static class TokenResources
         return dictionary;
     }
 
-    private static void Add(ResourceDictionary dictionary, string name, uint argb)
-    {
-        dictionary["Color" + name] = Argb(argb);
-        dictionary["Brush" + name] = new SolidColorBrush(Argb(argb));
-    }
-
     private static void AddNumber(ResourceDictionary dictionary, string name, double value) => dictionary[name] = value;
 
     private static void AddUniform(ResourceDictionary dictionary, string name, double value) =>
         dictionary[name] = new Thickness(value);
-
-    private static RadialGradientBrush RadialGlow(uint argb, double alpha) => new()
-    {
-        GradientStops =
-        {
-            new GradientStop { Color = SemiTransparent(argb, alpha), Offset = 0 },
-            new GradientStop { Color = SemiTransparent(argb, 0), Offset = 1 },
-        },
-    };
-
-    private static Color Argb(uint value) => Color.FromArgb(
-        (byte)((value >> 24) & 0xFF),
-        (byte)((value >> 16) & 0xFF),
-        (byte)((value >> 8) & 0xFF),
-        (byte)(value & 0xFF));
-
-    private static Color SemiTransparent(uint argb, double alpha)
-    {
-        var color = Argb(argb);
-        var scaled = (byte)Math.Round(color.A * alpha, MidpointRounding.AwayFromZero);
-        return Color.FromArgb(scaled, color.R, color.G, color.B);
-    }
 }

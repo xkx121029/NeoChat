@@ -76,6 +76,63 @@ public static class Tokens
 
         /// <summary>Non-design helper: transparency used by control templates that must not paint.</summary>
         public const uint Transparent = 0x00000000; // 非设计数值：透明，供控件模板关闭默认底色
+
+        // ---- §1.2 颜色 · 暗色（深海石板）---
+        // 与上方亮色常量成对：同一个资源名在 ThemePalette 里同时挂亮/暗两值，运行中按系统主题切换。
+        public const uint D01NightTop = 0xFF1D222C; // D01 nightTop — palette.dart:74
+        public const uint D02NightBottom = 0xFF1B1C23; // D02 nightBottom — palette.dart:75
+        public const uint D03Night = 0xFF1C1F28; // D03 night — palette.dart:76
+        public const uint D04NightLowest = 0xFF14171E; // D04 nightLowest — palette.dart:77
+        public const uint D05NightLow = 0xFF232730; // D05 nightLow — palette.dart:78
+        public const uint D06NightContainer = 0xFF272C36; // D06 nightContainer — palette.dart:79
+        public const uint D07NightHigh = 0xFF2D323C; // D07 nightHigh — palette.dart:80
+        public const uint D08NightHighest = 0xFF343944; // D08 nightHighest — palette.dart:81
+        public const uint D09Paper = 0xFFE6E9F0; // D09 paper 主文字 — palette.dart:84
+        public const uint D10PaperMuted = 0xFFB6BBC5; // D10 paperMuted — palette.dart:85
+        public const uint D11PaperFaint = 0xFF9A9EA9; // D11 paperFaint — palette.dart:86
+        public const uint D12PaperGhost = 0xFF656971; // D12 paperGhost — palette.dart:87
+        public const uint D13OutlineDark = 0xFF737781; // D13 outlineDark — palette.dart:88
+        public const uint D14RuleDark = 0xFF343841; // D14 ruleDark — palette.dart:89
+        public const uint D15ShadowNight = 0xFF03060D; // D15 shadowNight — palette.dart:90
+
+        // ---- §1.3 / §1.4 / §1.5 暗色列（与上方亮色同 ID 成对；行号出自 DESIGN-SYSTEM 表的「暗色」列）----
+        public const uint M01TextTertiaryDark = 0xFF9A9EA9; // M01 textTertiary 暗色 — semantic_colors.dart:274
+        public const uint M02TextDisabledDark = 0xFF656971; // M02 textDisabled 暗色 — semantic_colors.dart:275
+        public const uint M03SuccessDark = 0xFF8BCCA6; // M03 success 暗色 — semantic_colors.dart:276
+        public const uint M05WarningDark = 0xFFE6BD7C; // M05 warning 暗色 — semantic_colors.dart:280
+        public const uint M09InfoDark = 0xFF8CBDE8; // M09 info 暗色 — semantic_colors.dart:288
+        public const uint M13CodeWellBgDark = 0xFF14171E; // M13 codeWellBg 暗色 — semantic_colors.dart:297
+        public const uint M14CodeWellHeaderDark = 0xFF1A1E26; // M14 codeWellHeader 暗色 — semantic_colors.dart:298
+        public const uint M15CodeWellFgDark = 0xFFE6E9F0; // M15 codeWellFg 暗色 — semantic_colors.dart:299
+        public const uint M16CodeWellBorderDark = 0xFF2F333A; // M16 codeWellBorder 暗色 — semantic_colors.dart:300
+        public const uint M17LineNumberFgDark = 0xFF71747D; // M17 lineNumberFg 暗色 — semantic_colors.dart:301
+        public const uint S01SlateDark = 0xFFB3BED2; // S01 slate 暗色 = slateLift — palette.dart:98
+        public const uint S02SlateContainerDark = 0x17FFFFFF; // S02 slateContainer 暗色 = 17FFFFFF（≈9% 白）— palette.dart:100
+        public const uint S07DangerDark = 0xFFE69089; // S07 danger 暗色 = dangerLift — palette.dart:116
+        public const uint S08OnDangerDark = 0xFF331513; // S08 onDanger 暗色 — palette.dart:117
+        public const uint S09DangerContainerDark = 0xFF542C29; // S09 dangerContainer 暗色 — palette.dart:118
+        public const uint S10OnDangerContainerDark = 0xFFF8D9D7; // S10 onDangerContainer 暗色 — palette.dart:119
+        public const uint A01SeedDark = 0xFF97B1F0; // A01 seed 暗色 — accent.dart:134
+        public const uint A02PressedDark = 0xFF859EDC; // A02 pressed 暗色 — accent.dart:135
+        public const uint A03ContainerDark = 0xFF2E3C5F; // A03 container 暗色 — accent.dart:137
+        public const uint A04OnContainerDark = 0xFFD8E1F6; // A04 onContainer 暗色 — accent.dart:138
+        public const uint A05OnSeedDark = 0xFF121C34; // A05 onSeed 暗色 — accent.dart:136
+        public const uint A06BubbleDark = 0xFF293144; // A06 bubble 暗色（用户气泡底）— accent.dart:139
+        public const uint A07GlowDark = 0xFF51679D; // A07 glow 暗色 — accent.dart:140
+        public const uint A08HazeDark = 0xFF514765; // A08 haze 暗色 — accent.dart:143-144
+
+        // 玻璃暗色列。G01/G02 的暗色基色是 `smoke`，其 hex 被 DESIGN-SYSTEM §7 记为「未在源码找到（派生值）」；
+        // 这里取 D06 nightContainer #272C36 作等价替代，透明度仍照抄 G01 72% / G02 97%，替代关系是**推断**。
+        public const uint G01ChromeFillDark = 0xB8272C36; // G01 chrome fill 暗色 = smoke 72% → D06 @72%（推断，见上）— surfaces.dart:227
+        public const uint G02ChromeFallbackFillDark = 0xF7272C36; // G02 chrome fallbackFill 暗色 = smoke 97% → D06 @97%（推断，见上）— surfaces.dart:228
+        public const uint G03ChromeHairlineDark = 0x17FFFFFF; // G03 chrome hairline 暗色 = 白 9% — surfaces.dart:229
+        public const uint G04ChromeRimDark = 0x1FFFFFFF; // G04 chrome rim 暗色 = 白 12% — surfaces.dart:230
+        public const uint G11CardFillDark = 0x0DFFFFFF; // G11 card fill 暗色 = 白 5% — surfaces.dart:248
+        public const uint G12CardHairlineDark = 0x12FFFFFF; // G12 card hairline 暗色 = 白 7% — surfaces.dart:250
+        public const uint G12CardRimDark = 0x0FFFFFFF; // G12 card rim 暗色 = 白 6% — surfaces.dart:251
+        public const uint G13PillFillDark = 0x0FFFFFFF; // G13 pill fill 暗色 = 白 6% — surfaces.dart:254
+        public const uint G14PillHairlineDark = 0x14FFFFFF; // G14 pill hairline 暗色 = 白 8% — surfaces.dart:256
+        public const uint G16ScrimDark = 0x7A000000; // G16 scrim 暗色 = 纯黑 48% — surfaces.dart:223
     }
 
     /// <summary>Motion durations, §1.10.</summary>
@@ -307,5 +364,25 @@ public static class Tokens
         // 下面两个是推断值，取值原则：栏宽容纳 15 号中文标题 16 字，行高容两行（19.5 + 14.85 + 上下 8）。
         public const double RailWidth = 240; // 推断值：会话列表栏宽（设计系统无侧栏）
         public const double RailRowMinHeight = 56; // 推断值：标题 19.5 + 时间 14.85 + 上下 8×2
+
+        // 消息操作行（M1-WIN-005）。Y27/Y28：只给助手正文，按钮 36×36、图标 20、行内顶端 4、脚注前 8。
+        public const double MessageActionSize = 36; // Y28 操作行按钮 36×36 — message_actions.dart:212
+        public const double MessageActionIconSize = 20; // Y28 操作行图标 20 — message_actions.dart:104
+        public const double MessageActionTopGap = 4; // Y28 行内顶端 4 — message_actions.dart:194
+        public const double MessageActionGap = 4; // 未在源码找到（按钮间距）；取 P01 xs 4 — shapes.dart:64
+        public const double CodeCopyKeySize = 24; // 推断值：代码块右上角复制键 24，使其与 T18 头行（16.2 行高 + 上下 4）同高
+
+        /// <summary>
+        /// 复制成功图标的停留时长。DESIGN-SYSTEM 只给了 A-N02 quick 160ms 的「图标交叉切换」，
+        /// 没有给停留时长；取 1200ms（与 ST12 呼吸周期同值）属**推断值**。
+        /// </summary>
+        public const double CopyConfirmHoldMilliseconds = 1200; // 推断值：见上方注释
+    }
+
+    /// <summary>Values that only exist in the dark half of a token, §1.5 G15.</summary>
+    public static class Theme
+    {
+        public const double GlowPrimaryAlphaDark = 0.28; // G15 glowPrimary 暗色 α — surfaces.dart:219-220
+        public const double GlowSecondaryAlphaDark = 0.24; // G15 glowSecondary 暗色 α — surfaces.dart:219-220
     }
 }

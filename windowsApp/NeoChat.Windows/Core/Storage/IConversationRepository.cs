@@ -49,6 +49,14 @@ public interface IConversationRepository : IDisposable
 
     /// <summary>Points the conversation at the leaf the next turn continues from (message-tree cursor).</summary>
     void SetActiveLeaf(string conversationId, string messageId);
+
+    /// <summary>
+    /// Soft delete (DDL: <c>deleted_at</c>, 回收站 30 天): stamps the message and every descendant, drops
+    /// their full-text rows per the FTS maintenance contract, recounts the conversation, and moves the
+    /// active leaf to the deleted message's parent when the leaf pointed inside the deleted set.
+    /// Returns how many rows were marked.
+    /// </summary>
+    int SoftDeleteMessage(string messageId);
 }
 
 /// <summary>

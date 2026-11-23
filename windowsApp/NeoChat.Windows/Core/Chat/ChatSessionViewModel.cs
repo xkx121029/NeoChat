@@ -224,6 +224,62 @@ public sealed class ChatSessionViewModel : ObservableObject, IDisposable
         await RunAsync(lastUser).ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// Answers the same request again from the same parent: the reply is replaced by a new sibling branch
+    /// (same <c>parent_id</c>, next <c>sibling_index</c>) and the abandoned row stays in the store, so the
+    /// tree keeps both attempts and the new one becomes the active leaf.
+    /// </summary>
+    public async Task RegenerateAsync(ChatMessageItem? assistant)
+    {
+        if (IsStreaming || assistant is null || !assistant.IsAssistant)
+        {
+            return;
+        }
+
+        var index = Messages.IndexOf(assistant);
+        if (index <= 0 || !Messages[index - 1].IsUser)
+        {
+            return;
+        }
+
+        var parent = Messages[index - 1];
+        while (Messages.Count > index)
+        {
+            Messages.RemoveAt(Messages.Count - 1);
+        }
+
+        Error = null;
+        await RunAsync(parent).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Soft delete (DDL <c>deleted_at</c>): the message and the turns built on it leave the thread, while
+    /// the rows stay in the store for the 30-day recycle bin.
+    /// </summary>
+    public void DeleteMessage(ChatMessageItem? message)
+    {
+        if (IsStreaming || message is null)
+        {
+            return;
+        }
+
+        var index = Messages.IndexOf(message);
+        if (index < 0)
+        {
+            return;
+        }
+
+        if (_repository is not null && message.RowId is { } rowId)
+        {
+            _repository.SoftDeleteMessage(rowId);
+        }
+
+        while (Messages.Count > index)
+        {
+            Messages.RemoveAt(Messages.Count - 1);
+        }
+    }
+
     /// <summary>Header "new chat" key: drops the visible conversation once nothing is streaming.</summary>
     public void StartNewConversation()
     {

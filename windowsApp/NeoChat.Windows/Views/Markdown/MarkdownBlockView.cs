@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using NeoChat.Windows.Core.Design;
 using NeoChat.Windows.Core.Render;
+using NeoChat.Windows.Views;
 using Windows.UI.Text;
 using Block = NeoChat.Windows.Core.Render.Block;
 using Inline = NeoChat.Windows.Core.Render.Inline;
@@ -222,6 +223,7 @@ internal sealed class MarkdownBlockView : ContentControl
 
     private TextBlock? _codeText;
     private TextBlock? _codeLabel;
+    private FontIcon? _codeCopyGlyph;
 
     private void RenderCode(CodeBlock code, bool sameType)
     {
@@ -246,11 +248,40 @@ internal sealed class MarkdownBlockView : ContentControl
                 TextWrapping = TextWrapping.NoWrap,
             };
 
+            // 代码块右上角的独立复制键：只复制这一块，不碰整条消息。
+            _codeCopyGlyph = new FontIcon
+            {
+                FontFamily = MarkdownLook.IconFont,
+                FontSize = Tokens.Layout.IconGlyphSize,
+                Glyph = CopyGlyph,
+            };
+            var copyKey = new Button
+            {
+                Width = Tokens.Layout.CodeCopyKeySize,
+                Height = Tokens.Layout.CodeCopyKeySize,
+                Padding = new Thickness(0),
+                Background = MarkdownLook.Transparent,
+                BorderThickness = new Thickness(0),
+                CornerRadius = new CornerRadius(Tokens.Radius.Xs),
+                Content = _codeCopyGlyph,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(copyKey, "复制代码");
+            ToolTipService.SetToolTip(copyKey, "复制代码");
+            copyKey.Click += OnCopyCodeClick;
+
+            var headerGrid = new Grid();
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.Children.Add(_codeLabel);
+            Grid.SetColumn(copyKey, 1);
+            headerGrid.Children.Add(copyKey);
+
             var header = new Border
             {
                 Background = MarkdownLook.CodeWellHeader,
                 Padding = new Thickness(Tokens.Layout.CodeWellPaddingStart, Tokens.Space.Xs, Tokens.Layout.CodeWellPaddingEnd, Tokens.Space.Xs),
-                Child = _codeLabel,
+                Child = headerGrid,
             };
 
             var body = new ScrollViewer
@@ -634,6 +665,37 @@ internal sealed class MarkdownBlockView : ContentControl
 
         _literalBadge!.Text = label;
         _literalText!.Text = source;
+    }
+
+    // ---- 代码块复制键 ----------------------------------------------------------------
+
+    private const string CopyGlyph = "";
+    private const string CopiedGlyph = "";
+
+    private void OnCopyCodeClick(object sender, RoutedEventArgs e)
+    {
+        if (_block is not CodeBlock code || _codeCopyGlyph is null)
+        {
+            return;
+        }
+
+        ClipboardWriter.Write(code.Text);
+        _codeCopyGlyph.Glyph = CopiedGlyph;
+
+        // 停留时长是推断值（DESIGN-SYSTEM 只给了 A-N02 的交叉切换 160ms），见 Tokens.Layout。
+        var timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(Tokens.Layout.CopyConfirmHoldMilliseconds);
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) =>
+        {
+            if (_codeCopyGlyph is not null)
+            {
+                _codeCopyGlyph.Glyph = CopyGlyph;
+            }
+
+            timer.Stop();
+        };
+        timer.Start();
     }
 
     private static MarkdownBlockView NestedBlock(Block block)

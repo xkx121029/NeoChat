@@ -253,6 +253,54 @@ public sealed class SqliteConversationRepository : IConversationRepository
         }
     }
 
+    public int SoftDeleteMessage(string messageId)
+    {
+        lock (_gate)
+        {
+            var target = ReadMessageLocation(messageId);
+            if (target is null)
+            {
+                return 0;
+            }
+
+            var (conversationId, parentId) = target.Value;
+            var now = NeoChatDatabase.NowMilliseconds();
+            var ids = CollectSubtree(messageId);
+
+            using (var transaction = _database.Connection.BeginTransaction())
+            {
+                foreach (var id in ids)
+                {
+                    using (var mark = Command(
+                        "UPDATE message SET deleted_at = $now, updated_at = $now, sync_version = sync_version + 1, " +
+                        "rev = $rev WHERE id = $id AND deleted_at IS NULL",
+                        transaction))
+                    {
+                        mark.Parameters.AddWithValue("$now", now);
+                        mark.Parameters.AddWithValue("$rev", NeoChatDatabase.NewRevision());
+                        mark.Parameters.AddWithValue("$id", id);
+                        mark.ExecuteNonQuery();
+                    }
+
+                    // FTS maintenance contract (v1.sql): only live messages are indexed.
+                    using var fts = Command("DELETE FROM message_fts WHERE message_id = $id", transaction);
+                    fts.Parameters.AddWithValue("$id", id);
+                    fts.ExecuteNonQuery();
+                }
+
+                RetouchConversation(transaction, conversationId, now);
+                transaction.Commit();
+            }
+
+            if (ReadActiveLeaf(conversationId) is { } leaf && ids.Contains(leaf, StringComparer.Ordinal))
+            {
+                PointActiveLeaf(conversationId, parentId);
+            }
+
+            return ids.Count;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -296,6 +344,68 @@ public sealed class SqliteConversationRepository : IConversationRepository
         }
 
         return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
+    private (string ConversationId, string? ParentId)? ReadMessageLocation(string messageId)
+    {
+        using var command = Command("SELECT conversation_id, parent_id FROM message WHERE id = $id");
+        command.Parameters.AddWithValue("$id", messageId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+
+        return (reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1));
+    }
+
+    /// <summary>Message id plus every message hanging below it, live rows only.</summary>
+    private List<string> CollectSubtree(string messageId)
+    {
+        using var command = Command(
+            "WITH RECURSIVE subtree(id) AS (" +
+            "  SELECT id FROM message WHERE id = $id AND deleted_at IS NULL " +
+            "  UNION ALL " +
+            "  SELECT m.id FROM message m JOIN subtree s ON m.parent_id = s.id WHERE m.deleted_at IS NULL" +
+            ") SELECT id FROM subtree");
+        command.Parameters.AddWithValue("$id", messageId);
+
+        var ids = new List<string>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            ids.Add(reader.GetString(0));
+        }
+
+        return ids;
+    }
+
+    private void PointActiveLeaf(string conversationId, string? messageId)
+    {
+        using var command = Command(
+            "UPDATE conversation SET active_leaf_message_id = $message, updated_at = $now, " +
+            "sync_version = sync_version + 1, rev = $rev WHERE id = $id");
+        command.Parameters.AddWithValue("$message", (object?)messageId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$now", NeoChatDatabase.NowMilliseconds());
+        command.Parameters.AddWithValue("$rev", NeoChatDatabase.NewRevision());
+        command.Parameters.AddWithValue("$id", conversationId);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Recounts <c>message_count</c> / <c>last_message_at</c> after rows left the live set.</summary>
+    private void RetouchConversation(SqliteTransaction transaction, string conversationId, long now)
+    {
+        using var command = Command(
+            "UPDATE conversation SET " +
+            "  last_message_at = (SELECT MAX(created_at) FROM message WHERE conversation_id = $id AND deleted_at IS NULL), " +
+            "  message_count = (SELECT COUNT(*) FROM message WHERE conversation_id = $id AND deleted_at IS NULL), " +
+            "  updated_at = $now, sync_version = sync_version + 1, rev = $rev " +
+            "WHERE id = $id",
+            transaction);
+        command.Parameters.AddWithValue("$now", now);
+        command.Parameters.AddWithValue("$rev", NeoChatDatabase.NewRevision());
+        command.Parameters.AddWithValue("$id", conversationId);
+        command.ExecuteNonQuery();
     }
 
     private string? ReadActiveLeaf(string conversationId)

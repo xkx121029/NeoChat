@@ -27,8 +27,13 @@ public partial class App : Application
         {
             // 全部设计令牌由 Design/Tokens.cs 生成，视图只按 key 引用（无字面颜色、无魔法数字）。
             // 必须在 OnLaunched 里合并：在 App 构造函数里读 Application.Resources 会抛 0x8000FFFF。
-            Resources.MergedDictionaries.Add(TokenResources.Build());
+            var tokens = TokenResources.Build();
+            Resources.MergedDictionaries.Add(tokens);
             Trace("OnLaunched: tokens merged (" + Resources.MergedDictionaries.Count + " dictionaries)");
+
+            // 跟随系统主题：启动时读 ApplicationTheme，运行中听 UISettings 的颜色变化（见 Design/ThemeRuntime.cs）。
+            ThemeRuntime.Start(tokens);
+            Trace("OnLaunched: theme " + ThemeRuntime.Current);
             Trace("OnLaunched: building MainWindow");
             _window = new MainWindow();
             Trace("OnLaunched: window created");
