@@ -42,6 +42,21 @@
     <string name="chat_model_settings">模型与连接</string>
     <string name="chat_model_unset">未配置模型</string>
 
+    <string name="conversations_open">会话列表</string>
+    <string name="conversations_title">会话</string>
+    <string name="conversations_close">返回对话</string>
+    <string name="conversations_untitled">新对话</string>
+    <string name="conversations_empty_title">还没有会话</string>
+    <string name="conversations_empty_hint">发一条消息，它就会出现在这里。</string>
+    <string name="conversations_delete">删除会话</string>
+    <string name="conversations_delete_confirm">删除后该会话从列表移除，消息在回收站保留 30 天。</string>
+    <string name="conversations_delete_action">删除</string>
+    <string name="conversations_cancel">取消</string>
+    <string name="conversations_time_today">%1$02d:%2$02d</string>
+    <string name="conversations_time_yesterday">昨天</string>
+    <string name="conversations_time_date">%1$02d-%2$02d</string>
+    <string name="conversations_time_older">%1$04d-%2$02d-%3$02d</string>
+
     <string name="provider_title">模型与连接</string>
     <string name="provider_base_url">Base URL</string>
     <string name="provider_api_key">API Key</string>

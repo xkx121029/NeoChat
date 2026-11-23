@@ -48,6 +48,8 @@ import kotlinx.coroutines.launch
 @Composable
 public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
     val state by viewModel.state.collectAsState()
+    val conversations by viewModel.conversations.collectAsState()
+    var listOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -69,7 +71,7 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
             viewModel.updateDraft(text)
             if (store.isReady) viewModel.submit() else requireProvider()
         },
-        onNewChat = viewModel::reset,
+        onNewChat = viewModel::startNewConversation,
         onOpenProvider = ::requireProvider,
         onAction = { error, action ->
             when (val effect = effectOf(error, action, store, context)) {
@@ -96,7 +98,27 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
         screen = screen,
         input = input,
         snackbarHost = snackbarHost,
+        onOpenList = { listOpen = true },
     )
+
+    if (listOpen) {
+        ConversationPanel(
+            conversations = conversations,
+            activeId = state.conversationId,
+            now = remember(listOpen) { System.currentTimeMillis() },
+            onSelect = { id ->
+                listOpen = false
+                viewModel.openConversation(id)
+            },
+            onNew = {
+                listOpen = false
+                viewModel.startNewConversation()
+                if (!store.isReady) requireProvider()
+            },
+            onDelete = viewModel::deleteConversation,
+            onClose = { listOpen = false },
+        )
+    }
 
     providerFocus?.let { focus ->
         ProviderDialog(
@@ -122,6 +144,7 @@ private fun ChatFrame(
     screen: ScreenCallbacks,
     input: InputCallbacks,
     snackbarHost: SnackbarHostState,
+    onOpenList: () -> Unit,
 ) {
     val colors = LocalNeoColors.current
     Box(
@@ -135,7 +158,7 @@ private fun ChatFrame(
             ChatTopBar(
                 phase = state.phase,
                 modelName = modelName,
-                onNewChat = if (state.sessionStarted) screen.onNewChat else null,
+                onOpenList = onOpenList,
                 onOpenProvider = screen.onOpenProvider,
             )
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {

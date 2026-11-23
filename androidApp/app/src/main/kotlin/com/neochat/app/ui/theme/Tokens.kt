@@ -619,6 +619,34 @@ public object Metrics {
     public val dialogPadding: Dp = Space.xl
 }
 
+/** 会话列表面板的量。DESIGN-SYSTEM 只覆盖聊天页（`§2`/`§3`），这里每一项都是「推断值」，无设计出处。 */
+public object ListMetrics {
+    /** 推断值：行最小高 56（Material 列表行惯例）。 */
+    public val rowMinHeight: Dp = 56.dp
+
+    /** 推断值：行内边距纵向 P02 `md`、横向 P04 `gutter`。 */
+    public val rowPaddingV: Dp = Space.md
+    public val rowPaddingH: Dp = Space.gutter
+
+    /** 推断值：标题与时间间距取 P01 `xxs`。 */
+    public val rowTitleGap: Dp = Space.xxs
+
+    /** 推断值：整行圆角取 R03 `md`。 */
+    public val rowRadius: Dp = Radii.md
+
+    /** 推断值：删除键 44（触屏最小点按区，与顶栏圆钮同源）、图标 18。 */
+    public val deleteKey: Dp = Metrics.headerKey
+    public val deleteIcon: Dp = 18.dp
+
+    /** 推断值：面板左右留白 P04 `gutter`、行间距 P01 `xs`。 */
+    public val panelPaddingH: Dp = Space.gutter
+    public val rowGap: Dp = Space.xs
+
+    /** 推断值：空态图形 28、标题与提示间距 P02 `md`。 */
+    public val emptyGlyph: Dp = 28.dp
+    public val emptyGap: Dp = Space.md
+}
+
 /** §1.3 语义色 · 代码井（M13–M17）：等宽/代码/公式字面一律铺在 `codeWellBg` 上。 */
 internal object LightCodeWell {
     /** M13 `codeWellBg` 代码井底。 */

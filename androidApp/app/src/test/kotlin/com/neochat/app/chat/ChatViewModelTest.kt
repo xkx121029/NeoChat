@@ -1,5 +1,8 @@
 package com.neochat.app.chat
 
+import com.neochat.app.data.StoredMessage
+import com.neochat.app.data.StoredRole
+import com.neochat.app.data.StoredStatus
 import com.neochat.protocol.FinishReason
 import com.neochat.protocol.StreamEvent
 import com.neochat.protocol.request.ChatRequest
@@ -43,8 +46,15 @@ class ChatViewModelTest {
         ProviderConfig(baseUrl = "https://api.example.com/v1", apiKey = "unit-test-key", model = "deepseek-chat"),
     )
 
+    private val store = FakeChatStore()
+
     private fun viewModel(engine: FakeEngine): ChatViewModel =
-        ChatViewModel(engine = engine, provider = provider, scope = CoroutineScope(Dispatchers.Unconfined))
+        ChatViewModel(
+            engine = engine,
+            provider = provider,
+            store = store,
+            scope = CoroutineScope(Dispatchers.Unconfined),
+        )
 
     @Test
     fun `提交把历史和模型交给请求层，流事件推进到就绪`() {
@@ -121,6 +131,39 @@ class ChatViewModelTest {
         assertNotNull(failed.error)
         assertEquals("INTERNAL", failed.error?.code?.wire)
         assertTrue(failed.error?.actions?.isNotEmpty() == true)
+    }
+
+    @Test
+    fun `冷启动打开最近的会话，把历史装进状态`() {
+        store.latestConversationId = "conversation-cold"
+        store.restoreMessages = listOf(
+            StoredMessage("m1", StoredRole.USER, "上一轮的提问", "", StoredStatus.COMPLETE),
+            StoredMessage("m2", StoredRole.ASSISTANT, "上一轮的答复", "想了想", StoredStatus.ABORTED),
+        )
+        val vm = viewModel(FakeEngine())
+
+        assertEquals("conversation-cold", vm.state.value.conversationId)
+        assertEquals(listOf(MessageRole.USER, MessageRole.ASSISTANT), vm.state.value.messages.map { it.role })
+        assertEquals("上一轮的答复", vm.state.value.messages.last().text)
+        assertEquals("想了想", vm.state.value.messages.last().reasoning)
+        assertTrue(vm.state.value.messages.last().interrupted)
+        assertEquals(ChatPhase.IDLE, vm.state.value.phase)
+    }
+
+    @Test
+    fun `提交会先落盘再开流，退出的轮次落成 aborted`() {
+        val engine = FakeEngine()
+        val vm = viewModel(engine)
+        vm.startSession()
+        vm.updateDraft("你好")
+        vm.submit()
+        assertEquals(listOf("conversation-1"), store.created)
+        engine.emit(0, StreamEvent.Delta(0, "半句"))
+        assertEquals("半句", store.appendedText.toString())
+
+        vm.stop()
+
+        assertEquals(listOf(StoredStatus.ABORTED), store.finished)
     }
 
     @Test

@@ -56,7 +56,7 @@ import com.neochat.app.ui.theme.TypeScale
 public fun ChatTopBar(
     phase: ChatPhase,
     modelName: String,
-    onNewChat: (() -> Unit)?,
+    onOpenList: () -> Unit,
     onOpenProvider: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -69,13 +69,11 @@ public fun ChatTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Space.sm),
     ) {
-        if (onNewChat != null) {
-            HeaderKey(
-                icon = R.drawable.ic_new_chat,
-                description = stringResource(R.string.chat_new),
-                onClick = onNewChat,
-            )
-        }
+        HeaderKey(
+            icon = R.drawable.ic_list,
+            description = stringResource(R.string.conversations_open),
+            onClick = onOpenList,
+        )
         ChromePill(modifier = Modifier.weight(1f), shape = RoundedCornerShape(Radii.xl)) {
             Column(
                 modifier = Modifier.padding(horizontal = Space.lg, vertical = Space.xs),

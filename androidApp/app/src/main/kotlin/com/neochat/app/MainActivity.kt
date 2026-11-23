@@ -1,6 +1,7 @@
 package com.neochat.app
 
 import android.app.Activity
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsetsController
@@ -8,6 +9,8 @@ import androidx.compose.ui.platform.ComposeView
 import com.neochat.app.chat.ChatViewModel
 import com.neochat.app.chat.ProtocolChatEngine
 import com.neochat.app.chat.ProviderConfigStore
+import com.neochat.app.data.NeoChatDatabase
+import com.neochat.app.data.RoomChatStore
 import com.neochat.app.ui.chat.ChatScreen
 import com.neochat.app.ui.theme.NeoChatTheme
 
@@ -19,6 +22,7 @@ public class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ChatGraph.install(this)
         applyEdgeToEdge()
         setContentView(
             ComposeView(this).apply {
@@ -49,13 +53,28 @@ public class MainActivity : Activity() {
 }
 
 /**
- * 进程级依赖图：配置与 ViewModel 都不随 Activity 重建而销毁（旋转屏幕不丢会话）。
- * 会话状态活在内存里，进程结束即清空——持久化属于后续里程碑（见交付"待决问题"）。
+ * 进程级依赖图：配置、数据库与 ViewModel 都不随 Activity 重建而销毁（旋转屏幕不丢会话）。
+ * 会话内容落在 `neochat.db`，进程结束只丢在飞的那次请求（下次启动扫成 `aborted`）。
  */
 private object ChatGraph {
+
+    private var application: Context? = null
+
     val store: ProviderConfigStore = ProviderConfigStore()
 
+    private val database: NeoChatDatabase by lazy {
+        NeoChatDatabase.open(requireNotNull(application) { "ChatGraph.install 未调用" })
+    }
+
     val viewModel: ChatViewModel by lazy {
-        ChatViewModel(engine = ProtocolChatEngine(provider = { store.config }), provider = store)
+        ChatViewModel(
+            engine = ProtocolChatEngine(provider = { store.config }),
+            provider = store,
+            store = RoomChatStore(database),
+        )
+    }
+
+    fun install(context: Context) {
+        if (application == null) application = context.applicationContext
     }
 }

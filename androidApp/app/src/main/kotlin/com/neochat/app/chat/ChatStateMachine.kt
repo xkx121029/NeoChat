@@ -27,6 +27,23 @@ public class ChatStateMachine {
         return state
     }
 
+    /** 冷启动或切换会话：把库里读回的消息装进状态，消息 id 从这里重新分配。 */
+    public fun restore(messages: List<RestoredMessage>): ChatUiState {
+        state = ChatUiState(
+            sessionStarted = messages.isNotEmpty(),
+            messages = messages.map { restored ->
+                ChatMessageUi(
+                    id = nextId++,
+                    role = restored.role,
+                    text = restored.text,
+                    reasoning = restored.reasoning,
+                    interrupted = restored.interrupted,
+                )
+            },
+        )
+        return state
+    }
+
     public fun updateDraft(draft: String): ChatUiState {
         state = state.copy(draft = draft)
         return state

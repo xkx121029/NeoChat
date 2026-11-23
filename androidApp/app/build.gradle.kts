@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -33,10 +34,28 @@ android {
     }
 
     testOptions {
+        unitTests.isIncludeAndroidResources = true
         unitTests.all {
             it.useJUnitPlatform()
+            it.systemProperty("neochat.spec.sql", rootProject.file("spec/schema/v1.sql").absolutePath)
+            it.systemProperty(
+                "neochat.schema.room",
+                layout.projectDirectory.file("../schema/room-v1.json").asFile.absolutePath,
+            )
+            listOf("neochat.crash.db", "neochat.crash.phase").forEach { key ->
+                System.getProperty(key)?.let { value -> it.systemProperty(key, value) }
+            }
+            it.maxHeapSize = "1536m"
+            it.testLogging {
+                events("passed", "failed", "skipped")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            }
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -46,6 +65,14 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
 
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.junit4)
+    testRuntimeOnly(libs.junit.vintage.engine)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

@@ -31,8 +31,17 @@ public data class ChatMessageUi(
     public val usage: UsageCounts? = null,
 )
 
+/** 从库里读回的一条消息：重绘只需要角色、正文、思考与是否被打断。 */
+public data class RestoredMessage(
+    public val role: MessageRole,
+    public val text: String,
+    public val reasoning: String,
+    public val interrupted: Boolean,
+)
+
 /** 一次对话的完整界面状态；界面只读它，任何改动都经过 [ChatStateMachine]。 */
 public data class ChatUiState(
+    public val conversationId: String? = null,
     public val sessionStarted: Boolean = false,
     public val messages: List<ChatMessageUi> = emptyList(),
     public val draft: String = "",
