@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.SkipQueryVerification
 import kotlinx.coroutines.flow.Flow
 
 /** 会话列表与软删。排序键与 DDL 的 `idx_conv_list` 一致；没有消息的会话按创建时间排。 */
@@ -36,6 +37,16 @@ internal interface ConversationDao {
     )
     suspend fun touch(id: String, at: Long, delta: Long, leaf: String?, rev: String)
 
+    /** 软删之后重算这一行的计数与活跃叶；`leaf` 为 null 表示整段分支都没了。 */
+    @Query(
+        "UPDATE conversation SET " +
+            "active_leaf_message_id = :leaf, " +
+            "last_message_at = (SELECT MAX(created_at) FROM message WHERE conversation_id = :id AND deleted_at IS NULL), " +
+            "message_count = (SELECT COUNT(*) FROM message WHERE conversation_id = :id AND deleted_at IS NULL), " +
+            "updated_at = :at, rev = :rev, sync_version = sync_version + 1 WHERE id = :id",
+    )
+    suspend fun retouchAfterDelete(id: String, leaf: String?, at: Long, rev: String)
+
     @Query("UPDATE conversation SET title = :title, updated_at = :at, rev = :rev, sync_version = sync_version + 1 WHERE id = :id AND title_auto = 1")
     suspend fun retitleIfAuto(id: String, title: String, at: Long, rev: String)
 
@@ -67,6 +78,30 @@ internal interface MessageDao {
             "updated_at = :at, rev = :rev, sync_version = sync_version + 1 WHERE id = :id",
     )
     suspend fun settle(id: String, status: String, finishReason: String?, errorJson: String?, at: Long, rev: String)
+
+    @Query("""
+        WITH RECURSIVE subtree(id) AS (
+            SELECT id FROM message WHERE id = :id AND deleted_at IS NULL
+            UNION ALL
+            SELECT m.id FROM message m JOIN subtree s ON m.parent_id = s.id WHERE m.deleted_at IS NULL
+        )
+        SELECT id FROM subtree
+    """)
+    suspend fun subtreeIds(id: String): List<String>
+
+    @Query("SELECT * FROM message WHERE id = :id")
+    suspend fun find(id: String): MessageEntity?
+
+    @Query(
+        "UPDATE message SET deleted_at = :at, updated_at = :at, rev = :rev, " +
+            "sync_version = sync_version + 1 WHERE id IN (:ids) AND deleted_at IS NULL",
+    )
+    suspend fun softDelete(ids: List<String>, at: Long, rev: String): Int
+
+    /** FTS 维护契约（`v1.sql`）：只有活着的消息参与索引，软删同时清行。虚表 Room 校验不了。 */
+    @SkipQueryVerification
+    @Query("DELETE FROM message_fts WHERE message_id IN (:ids)")
+    suspend fun deleteSearchRows(ids: List<String>)
 
     /** 进程被杀留下的 `streaming` 行；下次启动扫成 `aborted`，已收到的正文不动。 */
     @Query(

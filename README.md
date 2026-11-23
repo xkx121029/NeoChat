@@ -2,13 +2,14 @@
 
 双原生 BYOK（自带密钥）大模型对话客户端。
 
-- Android：Kotlin 2.x + Jetpack Compose + Material 3，minSdk 26
-- Windows：C# 13 / .NET 9 + WinUI 3（Windows App SDK）
+- Android：Kotlin 2.x + Jetpack Compose + Material 3，minSdk 26（唯一实现端）
 - 不使用 Electron；不以 WebView 作为主渲染路径（含 Mermaid 与 LaTeX）
 
 ## 当前状态
 
-**阶段 M0：契约冻结 + 质量工程搭建。** 契约草案已落盘（DRAFT，待交叉评审），尚无业务代码，按 M0 规则不放出任何 UI 代码。
+**安卓单端可运行**：SSE 流式、Markdown 渲染、会话持久化全部落地，142 条测试。
+契约 `spec/` 冻结在 1.0.2（平台中立，仍可供未来第二实现使用）。
+桌面端已于 2026-11-23 退出范围，代码删除、快照存于 git tag `archive/windows-side-2026-11-23`（见 ADR-005）。
 
 唯一状态事实来源：[docs/PROJECT_STATE.md](docs/PROJECT_STATE.md)。质量三角待人类拍板：[docs/TRIANGLE.md](docs/TRIANGLE.md)。
 

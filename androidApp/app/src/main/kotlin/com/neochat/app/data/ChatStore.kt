@@ -83,6 +83,13 @@ public interface ChatStore {
 
     fun finish(turn: TurnRefs, status: StoredStatus, finishReason: String?, errorJson: String?)
 
+    /**
+     * 软删一条消息（DDL `deleted_at`，回收站 30 天）：消息与它的整个子树一起打时间戳，
+     * 清掉 FTS 行，重算会话的 `message_count` / `last_message_at`；活跃叶落在被删集合里时
+     * 退回到被删消息的父节点。返回被标记的行数。
+     */
+    suspend fun softDeleteMessage(messageId: String): Int
+
     /** 等写队列排空；测试与"退出前落盘"用。 */
     suspend fun quiesce()
 }

@@ -94,6 +94,39 @@ public class ChatStateMachine {
         return ChatSubmission(text = lastUser.text, history = kept.mapNotNull { it.asTurn() })
     }
 
+    /**
+     * 长按菜单里的"重新生成"：从这条助手消息重开。
+     *
+     * 保留它的前缀（结尾是它回答的那条用户消息），丢掉它自己和它的后继，再挂一个新的助手
+     * 兄弟——落盘时 `beginRetry(parentId)` 给同一个 `parent_id`，所以是同一层的兄弟分支，
+     * 旧回复留在库里可回退。
+     */
+    public fun regenerate(messageId: Long): ChatSubmission? {
+        if (state.isBusy) return null
+        val index = state.messages.indexOfFirst { it.id == messageId && it.role == MessageRole.ASSISTANT }
+        if (index <= 0) return null
+        val kept = state.messages.take(index)
+        val lastUser = kept.lastOrNull { it.role == MessageRole.USER } ?: return null
+        state = state.copy(phase = ChatPhase.CONNECTING, messages = kept + assistantMessage())
+        return ChatSubmission(text = lastUser.text, history = kept.mapNotNull { it.asTurn() })
+    }
+
+    /**
+     * 长按菜单里的"删除"：`deleted_at` 由落盘层写，这里只把它和它的分支从界面撤掉。
+     * 消息树是线性的，一条消息的后继就是它后面的全部消息，所以子树等于这段后缀。
+     */
+    public fun deleteMessage(messageId: Long): ChatUiState {
+        val index = state.messages.indexOfFirst { it.id == messageId }
+        if (index < 0) return state
+        if (state.messages[index].streaming) return state
+        val kept = state.messages.take(index)
+        state = state.copy(
+            messages = kept,
+            phase = if (state.isBusy) state.phase else ChatPhase.IDLE,
+        )
+        return state
+    }
+
     /** 请求层都没能开起来（配置/客户端异常）时，把错误落在这一轮上。 */
     public fun failWithoutStream(error: ErrorObject): ChatUiState {
         if (state.messages.lastOrNull()?.role != MessageRole.ASSISTANT) {

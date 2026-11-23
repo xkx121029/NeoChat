@@ -3,6 +3,11 @@
 > **唯一事实来源。** 若本文件与代码不一致，以代码为准并立即修正本文件。不允许它变成一份漂亮的谎言。
 > 最后更新：2026-11-22（M0 契约草案落盘；同日人类裁决 5 项已落进 ADR 与 spec）
 
+## 0. 范围变更（2026-11-23）
+
+桌面端（Windows/WinUI/.NET）**已退出范围**，代码删除，快照见 git tag `archive/windows-side-2026-11-23`，决策见 [ADR-005](decisions/ADR-005-desktop-scope-out.md)。
+**G1 判据已改**：由"双端逐字节一致"改为"与 `spec/conformance` 金样本 `expected.jsonl` 逐字节一致 + 桩实现作为第三方参照"。
+
 ## 1. 当前阶段与 Gate 状态
 
 | 阶段 | 内容 | 状态 | Gate | 判据摘要 |

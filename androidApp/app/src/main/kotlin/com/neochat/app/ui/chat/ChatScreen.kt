@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.neochat.app.R
+import com.neochat.app.chat.ChatMessageUi
 import com.neochat.app.chat.ChatUiState
 import com.neochat.app.chat.ChatViewModel
 import com.neochat.app.chat.ProviderConfigStore
@@ -57,6 +58,10 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
     val copiedNotice = stringResource(R.string.error_diagnostics_copied)
     var providerFocus by remember { mutableStateOf<ProviderField?>(null) }
     var rawText by remember { mutableStateOf<String?>(null) }
+    var menuTarget by remember { mutableStateOf<ChatMessageUi?>(null) }
+    val messageCopiedNotice = stringResource(R.string.chat_copied)
+    val codeCopiedNotice = stringResource(R.string.chat_copied_code)
+    val messageDeletedNotice = stringResource(R.string.chat_deleted)
 
     fun requireProvider() {
         providerFocus = store.focusField(emptyMap())
@@ -99,6 +104,7 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
         input = input,
         snackbarHost = snackbarHost,
         onOpenList = { listOpen = true },
+        onLongPressMessage = { menuTarget = it },
     )
 
     if (listOpen) {
@@ -134,6 +140,33 @@ public fun ChatScreen(viewModel: ChatViewModel, store: ProviderConfigStore) {
     rawText?.let { raw ->
         RawErrorDialog(raw = raw, onDismiss = { rawText = null })
     }
+    menuTarget?.let { message ->
+        val codeBlocks = remember(message.id, message.text) { codeBlocksOf(message.text) }
+        MessageMenu(
+            message = message,
+            codeBlocks = codeBlocks,
+            onDismiss = { menuTarget = null },
+            onCopyAll = {
+                copyPlainText(context, message.text)
+                menuTarget = null
+                scope.launch { snackbarHost.showSnackbar(messageCopiedNotice) }
+            },
+            onCopyCode = { index ->
+                codeBlocks.getOrNull(index)?.let { copyPlainText(context, it) }
+                menuTarget = null
+                scope.launch { snackbarHost.showSnackbar(codeCopiedNotice) }
+            },
+            onRegenerate = {
+                viewModel.regenerate(message.id)
+                menuTarget = null
+            },
+            onDelete = {
+                viewModel.deleteMessage(message.id)
+                menuTarget = null
+                scope.launch { snackbarHost.showSnackbar(messageDeletedNotice) }
+            },
+        )
+    }
 }
 
 /** 一屏三块：顶栏、内容区、输入栏；内容区在空态与消息列表之间二选一。 */
@@ -145,6 +178,7 @@ private fun ChatFrame(
     input: InputCallbacks,
     snackbarHost: SnackbarHostState,
     onOpenList: () -> Unit,
+    onLongPressMessage: (ChatMessageUi) -> Unit,
 ) {
     val colors = LocalNeoColors.current
     Box(
@@ -169,6 +203,7 @@ private fun ChatFrame(
                         messages = state.messages,
                         onAction = screen.onAction,
                         onDismissError = screen.onDismissError,
+                        onLongPressMessage = onLongPressMessage,
                     )
                 }
             }
@@ -202,7 +237,12 @@ private fun copyDiagnostics(
     scope: CoroutineScope,
     snackbarHost: SnackbarHostState,
 ) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText(effect.label, effect.text))
+    copyPlainText(context, effect.text, effect.label)
     scope.launch { snackbarHost.showSnackbar(notice) }
+}
+
+/** 写系统剪贴板；标签只用于无障碍朗读，不影响粘贴内容。 */
+private fun copyPlainText(context: Context, text: String, label: String = "") {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
 }

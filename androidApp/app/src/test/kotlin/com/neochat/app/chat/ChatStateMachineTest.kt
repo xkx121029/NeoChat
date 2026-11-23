@@ -132,6 +132,86 @@ class ChatStateMachineTest {
     }
 
     @Test
+    fun `重新生成从该回复重开：历史截到它回答的用户消息`() {
+        val machine = ChatStateMachine()
+        machine.updateDraft("第一问")
+        machine.submit()
+        machine.onStreamEvent(StreamEvent.Done(0, FinishReason.STOP))
+        machine.updateDraft("第二问")
+        machine.submit()
+        machine.onStreamEvent(StreamEvent.Done(1, FinishReason.STOP))
+        val secondReply = machine.state.messages.last()
+
+        val submission = machine.regenerate(secondReply.id)
+
+        assertNotNull(submission)
+        assertEquals("第二问", submission?.text)
+        assertEquals(
+            listOf(ChatTurn(MessageRole.USER, "第一问"), ChatTurn(MessageRole.ASSISTANT, ""), ChatTurn(MessageRole.USER, "第二问")),
+            submission?.history,
+        )
+        assertEquals(ChatPhase.CONNECTING, machine.state.phase)
+        assertEquals(4, machine.state.messages.size)
+        assertEquals(MessageRole.ASSISTANT, machine.state.messages.last().role)
+        assertTrue(machine.state.messages.last().streaming)
+        assertEquals(secondReply.id + 1, machine.state.messages.last().id)
+    }
+
+    @Test
+    fun `重新生成第一条回复时历史只剩它回答的那一问`() {
+        val machine = ChatStateMachine()
+        machine.updateDraft("唯一一问")
+        machine.submit()
+        machine.onStreamEvent(StreamEvent.Delta(0, "答"))
+        machine.onStreamEvent(StreamEvent.Done(1, FinishReason.STOP))
+        val firstReply = machine.state.messages.last()
+
+        val submission = machine.regenerate(firstReply.id)
+
+        assertEquals(listOf(ChatTurn(MessageRole.USER, "唯一一问")), submission?.history)
+        assertEquals(2, machine.state.messages.size)
+    }
+
+    @Test
+    fun `重新生成在流式期间被拒绝`() {
+        val machine = ChatStateMachine()
+        machine.updateDraft("问")
+        machine.submit()
+
+        assertNull(machine.regenerate(machine.state.messages.last().id))
+    }
+
+    @Test
+    fun `删除一条消息时连同它的分支一起从界面撤掉`() {
+        val machine = ChatStateMachine()
+        machine.updateDraft("第一问")
+        machine.submit()
+        machine.onStreamEvent(StreamEvent.Done(0, FinishReason.STOP))
+        machine.updateDraft("第二问")
+        machine.submit()
+        machine.onStreamEvent(StreamEvent.Done(1, FinishReason.STOP))
+        val secondQuestion = machine.state.messages[2]
+
+        machine.deleteMessage(secondQuestion.id)
+
+        assertEquals(2, machine.state.messages.size)
+        assertEquals(listOf("第一问", ""), machine.state.messages.map { it.text })
+        assertEquals(ChatPhase.IDLE, machine.state.phase)
+    }
+
+    @Test
+    fun `流式中的回复不被删除`() {
+        val machine = ChatStateMachine()
+        machine.updateDraft("问")
+        machine.submit()
+
+        machine.deleteMessage(machine.state.messages.last().id)
+
+        assertEquals(2, machine.state.messages.size)
+        assertEquals(ChatPhase.CONNECTING, machine.state.phase)
+    }
+
+    @Test
     fun `空输入不发请求，重复提交被丢弃`() {
         val machine = ChatStateMachine()
         machine.updateDraft("   ")

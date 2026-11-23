@@ -39,6 +39,15 @@
     <string name="chat_new">新对话</string>
     <string name="chat_title">普通对话</string>
     <string name="chat_scroll_to_bottom">回到最新</string>
+    <string name="chat_action_copy_all">复制全文</string>
+    <string name="chat_action_copy_code">复制代码块</string>
+    <string name="chat_action_copy_code_index">复制代码块 %1$d</string>
+    <string name="chat_action_regenerate">重新生成</string>
+    <string name="chat_action_delete">删除这条回复</string>
+    <string name="chat_menu_empty">这条回复还没有内容</string>
+    <string name="chat_copied">已复制</string>
+    <string name="chat_copied_code">已复制代码块</string>
+    <string name="chat_deleted">已移入回收站，30 天内可恢复</string>
     <string name="chat_model_settings">模型与连接</string>
     <string name="chat_model_unset">未配置模型</string>
 

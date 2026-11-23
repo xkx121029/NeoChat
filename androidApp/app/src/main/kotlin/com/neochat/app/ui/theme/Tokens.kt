@@ -732,3 +732,227 @@ public val NeoChatLightCodeColors: NeoChatCodeColors = NeoChatCodeColors(
     wellBorder = LightCodeWell.border,
     lineNumber = LightCodeWell.lineNumber,
 )
+
+/** §1.2 颜色 · 暗色（深海石板）。页面明度 0.23–0.25，不是纯黑底。 */
+internal object DarkInk {
+    /** D01 `nightTop` 页面渐变顶。 */
+    val nightTop: Color = Color(0xFF1D222C)
+
+    /** D02 `nightBottom` 页面渐变底。 */
+    val nightBottom: Color = Color(0xFF1B1C23)
+
+    /** D03 `night` 不透明页面底。 */
+    val night: Color = Color(0xFF1C1F28)
+
+    /** D04 `nightLowest`。 */
+    val nightLowest: Color = Color(0xFF14171E)
+
+    /** D05 `nightLow`。 */
+    val nightLow: Color = Color(0xFF232730)
+
+    /** D09 `paper` 主文字。 */
+    val paper: Color = Color(0xFFE6E9F0)
+
+    /** D10 `paperMuted` 次级文字。 */
+    val paperMuted: Color = Color(0xFFB6BBC5)
+
+    /** D13 `outlineDark` 交互边界。 */
+    val outlineDark: Color = Color(0xFF737781)
+
+    /** D14 `ruleDark` 分割线/发丝描边。 */
+    val ruleDark: Color = Color(0xFF343841)
+}
+
+/** §1.3 中性辅色 / 语义色 · 暗色。 */
+internal object DarkSemantic {
+    /** S01 `slateLift`（secondary）。 */
+    val slate: Color = Color(0xFFB3BED2)
+
+    /** S02 `slateContainer`（secondaryContainer）：白 9%。 */
+    val slateContainer: Color = Color(0x17FFFFFF)
+
+    /** S04 `duskLift`（tertiary）。 */
+    val dusk: Color = Color(0xFFBEAEDE)
+
+    /** S05 `duskContainer`。 */
+    val duskContainer: Color = Color(0xFF3E3451)
+
+    /** S06 `onDuskContainer`。 */
+    val onDuskContainer: Color = Color(0xFFE4DDF3)
+
+    /** S07 `dangerLift`。 */
+    val danger: Color = Color(0xFFE69089)
+
+    /** S08 `onDanger`。 */
+    val onDanger: Color = Color(0xFF331513)
+
+    /** S09 `dangerContainer`。 */
+    val dangerContainer: Color = Color(0xFF542C29)
+
+    /** S10 `onDangerContainer`。 */
+    val onDangerContainer: Color = Color(0xFFF8D9D7)
+
+    /** M01 `textTertiary`。 */
+    val textTertiary: Color = Color(0xFF9A9EA9)
+
+    /** M02 `textDisabled`。 */
+    val textDisabled: Color = Color(0xFF656971)
+
+    /** M05 `warning`。 */
+    val warning: Color = Color(0xFFE6BD7C)
+
+    /** G16 遮罩：暗色为纯黑 α0.48（亮色才用 S11）。 */
+    val scrim: Color = Color(0x7A000000)
+}
+
+/** §1.4 强调色（默认配色 `mist`）· 暗色。 */
+internal object DarkAccent {
+    /** A01 `seed`（primary）。 */
+    val seed: Color = Color(0xFF97B1F0)
+
+    /** A02 `pressed`。 */
+    val pressed: Color = Color(0xFF859EDC)
+
+    /** A03 `container`。 */
+    val container: Color = Color(0xFF2E3C5F)
+
+    /** A04 `onContainer`。 */
+    val onContainer: Color = Color(0xFFD8E1F6)
+
+    /** A05 `onSeed`。 */
+    val onSeed: Color = Color(0xFF121C34)
+
+    /** A06 `bubble` 用户气泡底。 */
+    val bubble: Color = Color(0xFF293144)
+}
+
+/**
+ * §1.5 玻璃材质 · 暗色。
+ *
+ * G01 / G07 的暗色底是 `smoke` / `sheetDark`，DESIGN-SYSTEM 记为派生值、未给 hex；
+ * 这里用 D05 `nightLow`（页面上一档的石板灰）作为近似的底，偏差已记入交付报告。
+ */
+internal object DarkGlass {
+    /** G01 chrome `fill`：`smoke` 72%，按 D05 取底。 */
+    val chromeFill: Color = Color(0xB8232730)
+
+    /** G03 chrome `hairline`：白 9%。 */
+    val chromeHairline: Color = Color(0x17FFFFFF)
+
+    /** G13 pill `fill`：白 6%。 */
+    val pillFill: Color = Color(0x0FFFFFFF)
+
+    /** G14 pill `hairline`：白 8%。 */
+    val pillHairline: Color = Color(0x14FFFFFF)
+}
+
+/** §1.3 语义色 · 代码井（M13–M17）· 暗色。 */
+internal object DarkCodeWell {
+    /** M13 `codeWellBg`。 */
+    val bg: Color = Color(0xFF14171E)
+
+    /** M14 `codeWellHeader`。 */
+    val header: Color = Color(0xFF1A1E26)
+
+    /** M15 `codeWellFg`。 */
+    val fg: Color = Color(0xFFE6E9F0)
+
+    /** M16 `codeWellBorder`。 */
+    val border: Color = Color(0xFF2F333A)
+
+    /** M17 `lineNumberFg`。 */
+    val lineNumber: Color = Color(0xFF71747D)
+}
+
+/** 暗色（`night`）实例；字段与 [NeoChatLightColors] 一一对应，注释里的条目 ID 是暗色列的出处。 */
+public val NeoChatDarkColors: NeoChatColors = NeoChatColors(
+    pageTop = DarkInk.nightTop,
+    pageBottom = DarkInk.nightBottom,
+    pageFallback = DarkInk.night,
+    raisedSurface = DarkInk.nightLowest,
+    ink = DarkInk.paper,
+    inkMuted = DarkInk.paperMuted,
+    inkFaint = DarkSemantic.textTertiary,
+    outline = DarkInk.outlineDark,
+    rule = DarkInk.ruleDark,
+    accent = DarkAccent.seed,
+    accentPressed = DarkAccent.pressed,
+    accentContainer = DarkAccent.container,
+    onAccentContainer = DarkAccent.onContainer,
+    onAccent = DarkAccent.onSeed,
+    userBubble = DarkAccent.bubble,
+    onUserBubble = DarkInk.paper,
+    slate = DarkSemantic.slate,
+    slateContainer = DarkSemantic.slateContainer,
+    dusk = DarkSemantic.dusk,
+    duskContainer = DarkSemantic.duskContainer,
+    onDuskContainer = DarkSemantic.onDuskContainer,
+    danger = DarkSemantic.danger,
+    onDanger = DarkSemantic.onDanger,
+    dangerContainer = DarkSemantic.dangerContainer,
+    onDangerContainer = DarkSemantic.onDangerContainer,
+    warning = DarkSemantic.warning,
+    textTertiary = DarkSemantic.textTertiary,
+    scrim = DarkSemantic.scrim,
+    chromeFill = DarkGlass.chromeFill,
+    chromeHairline = DarkGlass.chromeHairline,
+    pillFill = DarkGlass.pillFill,
+    pillHairline = DarkGlass.pillHairline,
+    streamingCursor = DarkAccent.seed,
+)
+
+/** 暗色的代码井角色（条目 ID 与 [NeoChatLightCodeColors] 相同，值为暗色列）。 */
+public val NeoChatDarkCodeColors: NeoChatCodeColors = NeoChatCodeColors(
+    wellBg = DarkCodeWell.bg,
+    wellHeader = DarkCodeWell.header,
+    wellFg = DarkCodeWell.fg,
+    wellBorder = DarkCodeWell.border,
+    lineNumber = DarkCodeWell.lineNumber,
+)
+
+/** §3.5 长按菜单的量（ST36–ST44）；行高与图标尺寸在 §4「长按菜单」行里给出或按同表推断。 */
+public object MenuMetrics {
+    /** ST40 弹层左右 gutter = `kSheetGutter` 20（取 P02 `xl`）。 */
+    public val sheetGutter: Dp = Space.xl
+
+    /** ST41 拖拽把手上内边距 10。 */
+    public val handleTop: Dp = 10.dp
+
+    /** ST41 把手 36×4、圆端。 */
+    public val handleWidth: Dp = 36.dp
+    public val handleHeight: Dp = 4.dp
+
+    /** ST41 把手色 = `onSurfaceVariant` α0.35。 */
+    public const val handleAlpha: Float = 0.35f
+
+    /** ST41 把手下内边距 12。 */
+    public val handleBottom: Dp = Space.md
+
+    /** ST36 预览左右内缩 = `kSheetGutter + 4`。 */
+    public val previewInset: Dp = 24.dp
+
+    /** ST36 预览相对组卡多缩进的 4（`kSheetGutter + 4` 减掉外层 gutter）。 */
+    public val previewExtra: Dp = 4.dp
+
+    /** ST36 预览距下方内容 10。 */
+    public val previewGap: Dp = 10.dp
+
+    /** 推断值：预览最多 3 行（DESIGN-SYSTEM 只给了缩进与间距，未给行数）。 */
+    public const val previewMaxLines: Int = 3
+
+    /** ST39 组卡之间 12、整表底部 12。 */
+    public val groupGap: Dp = Space.md
+    public val sheetBottom: Dp = Space.md
+
+    /** §4「长按菜单」：行统一 48 高。 */
+    public val rowHeight: Dp = 48.dp
+
+    /** 推断值：行内图标 20（行高 48 的常规配比，DESIGN-SYSTEM 未给菜单图标尺寸）。 */
+    public val rowIcon: Dp = 20.dp
+
+    /** 推断值：行内图标与文字间距 P02 `md`。 */
+    public val rowIconGap: Dp = Space.md
+
+    /** 推断值：组卡圆角取 R03 `md`（§1.7 R03 覆盖「菜单」）。 */
+    public val groupRadius: Dp = Radii.md
+}

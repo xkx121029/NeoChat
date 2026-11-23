@@ -27,6 +27,7 @@ internal class FakeChatStore : ChatStore {
     var lastErrorJson: String? = null
     var lastUsage: UsageCounts? = null
     var reloaded: MutableList<String> = mutableListOf()
+    val deletedMessages: MutableList<String> = mutableListOf()
 
     private var sequence: Int = 0
 
@@ -90,6 +91,11 @@ internal class FakeChatStore : ChatStore {
     override fun finish(turn: TurnRefs, status: StoredStatus, finishReason: String?, errorJson: String?) {
         finished += status
         lastErrorJson = errorJson
+    }
+
+    override suspend fun softDeleteMessage(messageId: String): Int {
+        deletedMessages += messageId
+        return 1
     }
 
     override suspend fun quiesce(): Unit = Unit

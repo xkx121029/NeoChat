@@ -2,6 +2,8 @@
 
 package com.neochat.app.ui.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,16 +32,23 @@ import com.neochat.protocol.errors.ErrorObject
 
 /**
  * 助手消息（§2.1 Y23–Y28）：无框裸排、左对齐、占满正文列；思考行在上，正文在下，中断标记与错误跟着这一轮走。
+ * 长按正文打开 §3.5 的消息菜单（ST34：长按气泡或正文）。
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 public fun AssistantMessage(
     message: ChatMessageUi,
     onAction: (ErrorObject, ErrorAction) -> Unit,
     onDismissError: (Long) -> Unit,
+    onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalNeoColors.current
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = {}, onLongClick = onLongPress),
+    ) {
         if (message.reasoning.isNotBlank()) {
             ThinkingRow(
                 messageId = message.id,

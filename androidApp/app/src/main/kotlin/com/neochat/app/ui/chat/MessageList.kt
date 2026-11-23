@@ -18,30 +18,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.neochat.app.R
 import com.neochat.app.chat.ChatMessageUi
 import com.neochat.app.chat.MessageRole
+import com.neochat.app.chat.ScrollFollow
 import com.neochat.app.ui.theme.LocalNeoColors
 import com.neochat.app.ui.theme.Metrics
 import com.neochat.app.ui.theme.Radii
@@ -54,14 +52,17 @@ import com.neochat.protocol.errors.ErrorObject
 import kotlinx.coroutines.launch
 
 /**
- * 消息列表（§2.1）：阅读列 720 居中、轮内 8 / 轮间 24、顶部 8 / 底部 8，
- * 贴底时逐 token 跟随（DESIGN-SYSTEM §5 差异 4 已记：非 `reverseLayout` 方案会有 1 帧差）。
+ * 消息列表（§2.1）：阅读列 720 居中、轮内 8 / 轮间 24、顶部 8 / 底部 8。
+ *
+ * 贴底跟随交给 [ScrollFollow]：流式内容变高不算"用户上滚"，只有位置上移才解除跟随并
+ * 露出 Y09 的"回到底部"。
  */
 @Composable
 public fun MessageList(
     messages: List<ChatMessageUi>,
     onAction: (ErrorObject, ErrorAction) -> Unit,
     onDismissError: (Long) -> Unit,
+    onLongPressMessage: (ChatMessageUi) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -69,13 +70,30 @@ public fun MessageList(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val columnWidth = minOf(maxWidth - Space.gutter * 2, Space.readingWidth)
         val slackPx = with(LocalDensity.current) { Space.pinnedSlack.toPx() }
-        val pinned by remember(listState) { derivedStateOf { isPinned(listState, slackPx) } }
+        val follow = remember(listState, slackPx) { ScrollFollow(slackPx) }
+        val pinned = remember(follow) { mutableStateOf(follow.isFollowing) }
         val tailLength = messages.lastOrNull()?.let { it.text.length + it.reasoning.length } ?: 0
+
+        LaunchedEffect(listState) {
+            snapshotFlow {
+                val info = listState.layoutInfo
+                val last = info.visibleItemsInfo.lastOrNull()
+                val position = listState.firstVisibleItemIndex.toLong() * ITEM_POSITION_SPAN +
+                    listState.firstVisibleItemScrollOffset
+                position.toFloat() to
+                    if (last == null) 0f else (last.offset + last.size - info.viewportEndOffset).toFloat()
+            }.collect { (position, distanceToBottom) ->
+                follow.onScroll(position, distanceToBottom)
+                pinned.value = follow.isFollowing
+            }
+        }
+
         LaunchedEffect(messages.size, tailLength) {
-            if (pinned && messages.isNotEmpty()) {
+            if (follow.onContentChanged() && messages.isNotEmpty()) {
                 listState.scrollToItem(messages.lastIndex, Int.MAX_VALUE)
             }
         }
+
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -97,13 +115,14 @@ public fun MessageList(
                                 message = message,
                                 onAction = onAction,
                                 onDismissError = onDismissError,
+                                onLongPress = { onLongPressMessage(message) },
                             )
                         }
                     }
                 }
             }
         }
-        if (!pinned && messages.isNotEmpty()) {
+        if (!pinned.value && messages.isNotEmpty()) {
             ScrollToBottom(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -111,7 +130,11 @@ public fun MessageList(
                         end = maxOf(Space.none, (maxWidth - Space.readingWidth) / 2) + Metrics.scrollToBottomInset,
                         bottom = Metrics.scrollToBottomInset,
                     ),
-                onClick = { scope.launch { listState.animateScrollToItem(messages.lastIndex, Int.MAX_VALUE) } },
+                onClick = {
+                    follow.jumpToBottom()
+                    pinned.value = true
+                    scope.launch { listState.animateScrollToItem(messages.lastIndex, Int.MAX_VALUE) }
+                },
             )
         }
     }
@@ -161,11 +184,8 @@ private fun gapBefore(messages: List<ChatMessageUi>, index: Int): Dp {
     }
 }
 
-/** Y10：贴底判定留 8 的空档。 */
-private fun isPinned(state: LazyListState, slackPx: Float): Boolean {
-    val info = state.layoutInfo
-    if (info.totalItemsCount == 0) return true
-    val last = info.visibleItemsInfo.lastOrNull() ?: return true
-    val bottom = last.offset + last.size
-    return last.index == info.totalItemsCount - 1 && bottom <= info.viewportEndOffset + slackPx
-}
+/**
+ * 列表项的跨度：把 `(index, offset)` 压成一个单调递增的位置，供 [ScrollFollow] 比较。
+ * 单条消息不可能高过这个值，所以换算不会交错。
+ */
+private const val ITEM_POSITION_SPAN: Long = 1_000_000L

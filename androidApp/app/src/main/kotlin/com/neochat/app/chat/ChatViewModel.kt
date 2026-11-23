@@ -107,6 +107,41 @@ public class ChatViewModel(
         publish(machine.requestCancel())
     }
 
+    /**
+     * 长按菜单"重新生成"：同父新兄弟分支。库里挂在新助手消息上的 `parent_id` 就是被重开那条
+     * 回复回答的用户消息，因此旧回复不会被覆盖。
+     */
+    public fun regenerate(messageId: Long) {
+        val submission = machine.regenerate(messageId) ?: return
+        publish(machine.state)
+        val messages = machine.state.messages
+        val assistantLocalId = messages.last().id
+        val parentLocalId = messages[messages.size - 2].id
+        detach()
+        val token = generation
+        scope.launch {
+            val turn = beginRetry(databaseIds[parentLocalId]) ?: return@launch
+            databaseIds[assistantLocalId] = turn.assistantMessageId
+            if (token != generation) return@launch
+            activeTurn = turn
+            startStream(submission, token)
+        }
+    }
+
+    /** 长按菜单"删除"：先撤界面，再写 `deleted_at`（含分支、FTS 与活跃叶，见落盘层）。 */
+    public fun deleteMessage(messageId: Long) {
+        val target = machine.state.messages.firstOrNull { it.id == messageId } ?: return
+        if (target.streaming) return
+        val databaseId = databaseIds[messageId]
+        val removed = machine.state.messages
+            .dropWhile { it.id != messageId }
+            .map { it.id }
+        publish(machine.deleteMessage(messageId))
+        removed.forEach(databaseIds::remove)
+        if (databaseId == null) return
+        scope.launch { runCatching { store.softDeleteMessage(databaseId) } }
+    }
+
     /** 顶栏"新对话"：上一条空会话直接复用，避免列表里堆一串没说话的会话。 */
     public fun startNewConversation() {
         detach()

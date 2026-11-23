@@ -178,6 +178,20 @@ internal class RoomChatStore(
         }
     }
 
+    override suspend fun softDeleteMessage(messageId: String): Int = withContext(writer) {
+        val target = db.messages().find(messageId) ?: return@withContext 0
+        val at = now()
+        val rev = Uuid7.revision()
+        val ids = db.messages().subtreeIds(messageId)
+        if (ids.isEmpty()) return@withContext 0
+        db.messages().softDelete(ids, at, rev)
+        db.messages().deleteSearchRows(ids)
+        val leaf = db.conversations().find(target.conversationId)?.activeLeafMessageId
+        val nextLeaf = if (leaf != null && leaf in ids) target.parentId else leaf
+        db.conversations().retouchAfterDelete(target.conversationId, nextLeaf, at, rev)
+        ids.size
+    }
+
     /** 写任务入队；`quiesce` 靠这些句柄等到真正提交完，而不是只等一个空任务。 */
     private fun enqueue(block: suspend () -> Unit) {
         val job = scope.launch { block() }

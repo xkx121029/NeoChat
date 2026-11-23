@@ -17,7 +17,7 @@
 | 质量工程 | `tools/**`、`.github/**`、`ci/**`、`bench/**` | Tech Lead 建，之后可移交 |
 | 协议层 | `shared/protocol/**`（双端各自的实现目录，见任务单） | 1~2 执行者 |
 | Android | `androidApp/**` | 1~2 执行者 |
-| Windows | `windowsApp/**` | 1~2 执行者 |
+| （已退出） | ~~`windowsApp/**`~~ | 2026-11-23 起不再有桌面泳道，见 ADR-005 |
 
 - 同一文件同一时间只有一个执行者可写。
 - 跨泳道共享文件（spec、DDL、RenderModel、conformance 样本）只有 Tech Lead 可写。
