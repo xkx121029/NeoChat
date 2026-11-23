@@ -389,9 +389,10 @@ CREATE TABLE tombstone (
 -- 分词方案：FTS5 + unicode61，索引的是**已分词文本**（中文用 ICU/WinRT 词语切分器
 -- 在写入时切成空格分隔的 token）。理由：unicode61 不切中文；trigram 无法支持
 -- 2 字查询（"会议"），而 2 字查询是中文用户的常见输入。
--- 风险：Android ICU BreakIterator 与 WinRT WordsSegmenter 的分词结果可能不同。
--- 缓解：分词一致性由 conformance 金语料强制（偏差 >2% 则改 trigram + LIKE 兜底）；
--- 该取舍必须在 M3 前由 ADR-004 定案。
+-- 实测（2026-11-24，AOSP API 33）：系统 SQLite 3.32.2 **没有 FTS5**（no such module: fts5）。
+-- 因此 Android 侧必须自带 SQLite（见 docs/decisions/ADR-004-fts5-and-tokenizer.md），
+-- 不能假设"API 24 起一定有 FTS5"。CJK 采用二元组（bigram）切分，写入与查询同一函数；
+-- 已知盲区：跨字间歇查询不命中，已记入 ADR-004 §3。
 --
 -- FTS 维护契约（不使用触发器，因为分词必须在应用层做）：
 --   1. 仓库层在**同一事务**内写 message_part 与 message_fts。

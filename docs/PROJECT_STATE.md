@@ -107,7 +107,8 @@ M0 任务单全部在 [docs/M0-TASKS.md](docs/M0-TASKS.md)。**无任务已下�
 | 导出不支持 zip 容器（单 JSON 上限 200MB） | export notes §6 | 中 | 视用户反馈 | 超大附件集合无法一次导出，需分批 |
 | 无 provider 级流式断点续传 | ADR-003 §3 | 中 | 无计划（各家无接口） | 断线只能「继续生成」，不能无缝续流 |
 | Mermaid 仅 flowchart/sequence | RULINGS 2026-11-22 #5 | 中 | 视需求 | class/state/gantt 等降级为代码块 |
-| 双端分词器偏差未统一 | providers §5 | 中 | M2（ADR 待写） | token 估算两端略有差异，已用误差标注兜住 |
+| CJK 检索盲区（bigram 跨字间歇不命中） | ADR-004 §3 | 中 | M3 | 用户搜"文章要点"不命中"这篇文章的要点"，功能感知为"搜不到" |
+| detekt 未达门禁（protocol 33 条、app 多处存量） | NEOC-19 实测 | 中 | 下一轮 | CI 里只能 continue-on-error，质量声称只能按模块说 |
 
 ## 7. 本阶段验收记录
 
