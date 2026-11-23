@@ -78,7 +78,7 @@ public fun MessageList(
             snapshotFlow {
                 val info = listState.layoutInfo
                 val last = info.visibleItemsInfo.lastOrNull()
-                val position = listState.firstVisibleItemIndex.toLong() * ITEM_POSITION_SPAN +
+                val position = listState.firstVisibleItemIndex.toLong() * ScrollFollow.POSITION_ITEM_SPAN +
                     listState.firstVisibleItemScrollOffset
                 position.toFloat() to
                     if (last == null) 0f else (last.offset + last.size - info.viewportEndOffset).toFloat()
@@ -183,9 +183,3 @@ private fun gapBefore(messages: List<ChatMessageUi>, index: Int): Dp {
         Space.userToNonUser
     }
 }
-
-/**
- * 列表项的跨度：把 `(index, offset)` 压成一个单调递增的位置，供 [ScrollFollow] 比较。
- * 单条消息不可能高过这个值，所以换算不会交错。
- */
-private const val ITEM_POSITION_SPAN: Long = 1_000_000L

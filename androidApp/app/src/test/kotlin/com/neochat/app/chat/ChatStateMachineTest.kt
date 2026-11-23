@@ -147,7 +147,7 @@ class ChatStateMachineTest {
         assertNotNull(submission)
         assertEquals("第二问", submission?.text)
         assertEquals(
-            listOf(ChatTurn(MessageRole.USER, "第一问"), ChatTurn(MessageRole.ASSISTANT, ""), ChatTurn(MessageRole.USER, "第二问")),
+            listOf(ChatTurn(MessageRole.USER, "第一问"), ChatTurn(MessageRole.USER, "第二问")),
             submission?.history,
         )
         assertEquals(ChatPhase.CONNECTING, machine.state.phase)

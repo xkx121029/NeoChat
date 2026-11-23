@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    `usesCleartextTraffic` 必须打开：BYOK 允许用户把 Base URL 指向自建端点
+    （局域网 Ollama / vLLM / 本地 mock 通常是 http）。Android 9 起默认禁止明文，
+    关掉会让这类端点一律落到 TRANSPORT 错误（NEOC-18 模拟器联调暴露）。
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,6 +15,7 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.NeoChat">
         <activity
             android:name=".MainActivity"

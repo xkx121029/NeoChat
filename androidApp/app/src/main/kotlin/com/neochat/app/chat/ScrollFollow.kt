@@ -49,5 +49,8 @@ public class ScrollFollow(
     public companion object {
         /** 推断值：亚像素抖动不算"用户上滚"，取半个 dp 的像素量。 */
         public const val MOVED_UP_TOLERANCE: Float = 0.5f
+
+        /** 结构性常量（非设计值）：把 `(index, offset)` 压成一个单调位置时，单条消息的跨度。 */
+        public const val POSITION_ITEM_SPAN: Long = 1_000_000L
     }
 }

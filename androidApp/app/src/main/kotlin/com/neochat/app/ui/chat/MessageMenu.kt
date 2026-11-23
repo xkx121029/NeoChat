@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +59,6 @@ internal fun MessageMenu(
     val actions = actionsFor(message, codeBlocks.size)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
         containerColor = colors.pageFallback,
         contentColor = colors.ink,
         shape = RoundedCornerShape(topStart = Radii.xl, topEnd = Radii.xl),
@@ -121,7 +119,7 @@ private fun MenuHandle() {
             Modifier
                 .width(MenuMetrics.handleWidth)
                 .height(MenuMetrics.handleHeight)
-                .clip(RoundedCornerShape(percent = 50))
+                .clip(RoundedCornerShape(MenuMetrics.handleHeight / 2))
                 .background(colors.inkMuted.copy(alpha = MenuMetrics.handleAlpha)),
         )
     }
@@ -150,7 +148,8 @@ private fun MenuRow(icon: Int, label: String, tint: Color, onClick: () -> Unit) 
 }
 
 private fun iconOf(kind: MessageActionKind): Int = when (kind) {
-    MessageActionKind.COPY_ALL, MessageActionKind.COPY_CODE -> R.drawable.ic_copy
+    MessageActionKind.COPY_ALL -> R.drawable.ic_copy
+    MessageActionKind.COPY_CODE -> R.drawable.ic_code
     MessageActionKind.REGENERATE -> R.drawable.ic_regenerate
     MessageActionKind.DELETE -> R.drawable.ic_trash
 }

@@ -120,7 +120,7 @@ public class ChatViewModel(
         detach()
         val token = generation
         scope.launch {
-            val turn = beginRetry(databaseIds[parentLocalId]) ?: return@launch
+            val turn = beginRetry(parentLocalId) ?: return@launch
             databaseIds[assistantLocalId] = turn.assistantMessageId
             if (token != generation) return@launch
             activeTurn = turn
