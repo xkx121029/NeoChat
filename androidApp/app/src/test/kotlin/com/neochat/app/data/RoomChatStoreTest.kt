@@ -1,13 +1,11 @@
 package com.neochat.app.data
 
 import android.content.Context
-import android.database.Cursor
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.useWriterConnection
+import androidx.sqlite.SQLiteStatement
 import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -92,7 +90,7 @@ class RoomChatStoreTest {
             "SELECT m.finish_reason, c.active_leaf_message_id FROM message m " +
                 "JOIN conversation c ON c.id = m.conversation_id WHERE m.id = ?",
             arrayOf(turn.assistantMessageId),
-        ) { cursor -> cursor.getString(0) to cursor.getString(1) }
+        ) { cursor -> cursor.getText(0) to cursor.getText(1) }
         assertEquals("stop", settled.first)
         assertEquals(turn.assistantMessageId, settled.second)
     }
@@ -169,12 +167,12 @@ class RoomChatStoreTest {
     @Test
     fun `schema_meta、migration 与设备 id 在建库时写好`(): Unit = runBlocking {
         store.open()
-        val version = readOne("SELECT value FROM schema_meta WHERE key = 'schema_version'") { it.getString(0) }
+        val version = readOne("SELECT value FROM schema_meta WHERE key = 'schema_version'") { it.getText(0) }
         val migration = readOne("SELECT checksum, integrity_ok FROM migration") {
-            it.getString(0) to it.getInt(1)
+            it.getText(0) to it.getInt(1)
         }
         val device = readOne("SELECT value_json FROM app_setting WHERE key = 'sync.device_id'") {
-            it.getString(0)
+            it.getText(0)
         }
         assertEquals("1", version)
         assertEquals(SchemaBaseline.SPEC_SHA256, migration.first)
@@ -218,16 +216,24 @@ class RoomChatStoreTest {
         assertEquals(null, store.open().latestConversationId)
     }
 
-    /** Room 2.8 的 `query` 只收 SupportSQLiteQuery，这里直接走 openHelper，并挪到 IO 线程。 */
+    /** 读一行：自带 SQLite 走驱动路径，`openHelper` 不可用，查询走写连接的 `usePrepared`。 */
     private suspend fun <T> readOne(
         sql: String,
         args: Array<Any?> = emptyArray(),
-        read: (Cursor) -> T,
-    ): T = withContext(Dispatchers.IO) {
-        val database: SupportSQLiteDatabase = db.openHelper.writableDatabase
-        database.query(sql, args).use { cursor ->
-            assertTrue(cursor.moveToFirst())
-            read(cursor)
+        read: (SQLiteStatement) -> T,
+    ): T = db.useWriterConnection { connection ->
+        connection.usePrepared(sql) { prepared ->
+            args.forEachIndexed { offset, value ->
+                val index = offset + 1
+                when (value) {
+                    null -> prepared.bindNull(index)
+                    is Int -> prepared.bindInt(index, value)
+                    is Long -> prepared.bindLong(index, value)
+                    else -> prepared.bindText(index, value.toString())
+                }
+            }
+            assertTrue(prepared.step())
+            read(prepared)
         }
     }
 

@@ -8,7 +8,10 @@ package com.neochat.app.data
  */
 internal class MessageIndex(private val db: NeoChatDatabase) {
 
-    /** 只在第一次用时探测：Robolectric 的 SQLite 没编 FTS5，那时整条 FTS 路径静默跳过。 */
+    /**
+     * 只在第一次用时探测。设备上是自带 SQLite，FTS5 必在（ADR-004），这里恒为 true；
+     * 宿主 JVM 单测跑的是 Robolectric 的平台 SQLite，没有 FTS5，那里整条 FTS 路径跳过。
+     */
     private var available: Boolean? = null
 
     /** 把某个 part 的当前正文同步成一行；非 text part 或 part 已不存在时只做清理。 */

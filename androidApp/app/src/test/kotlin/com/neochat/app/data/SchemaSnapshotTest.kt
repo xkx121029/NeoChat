@@ -1,17 +1,14 @@
 package com.neochat.app.data
 
 import android.content.Context
-import android.database.Cursor
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.Transactor
+import androidx.room.useWriterConnection
 import androidx.test.core.app.ApplicationProvider
 import com.neochat.protocol.Json
 import com.neochat.protocol.JsonValue
 import java.io.File
 import java.security.MessageDigest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import androidx.room.withTransaction
-import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -35,10 +32,12 @@ class SchemaSnapshotTest {
      */
     @Test
     fun `Room 建出的库与 room-v1 快照逐表逐列相等`(): Unit = runBlocking {
-        val actual = dump(open())
-        val expected = Json.parse(File(requireNotNull(System.getProperty("neochat.schema.room"))).readText())
-        assertEquals(entityTables(denormalize(expected)), entityTables(actual))
-        assertEquals(22, (actual.getValue("tables") as Map<*, *>).size)
+        val actual = entityTables(dump(open()))
+        val expected = entityTables(
+            denormalize(Json.parse(File(requireNotNull(System.getProperty("neochat.schema.room"))).readText())),
+        )
+        assertEquals(expected, actual)
+        assertEquals(22, actual.size)
     }
 
     /**
@@ -69,46 +68,45 @@ class SchemaSnapshotTest {
     private fun open(): NeoChatDatabase =
         NeoChatDatabase.openInMemory(ApplicationProvider.getApplicationContext<Context>())
 
-    /** onOpen 里的 PRAGMA 只对主连接生效，所以读回也要在主连接上做——包一个事务即可。 */
-    private suspend fun pragma(db: NeoChatDatabase, statement: String): String = db.withTransaction {
-        database(db).query(statement).use { cursor ->
-            assertTrue(cursor.moveToFirst())
-            cursor.getString(0)
+    /** PRAGMA 读回要落在写连接上：读连接是另一条连接，会话级设置不共享。 */
+    private suspend fun pragma(db: NeoChatDatabase, statement: String): String = db.useWriterConnection { connection ->
+        connection.usePrepared(statement) { prepared ->
+            assertTrue(prepared.step())
+            prepared.getText(0)
         }
     }
 
-    private suspend fun dump(db: NeoChatDatabase): Map<String, Any?> = withContext(Dispatchers.IO) {
+    private suspend fun dump(db: NeoChatDatabase): Map<String, Any?> {
         val tables = sortedMapOf<String, Any?>()
-        database(db).query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-            .use { cursor ->
-                while (cursor.moveToNext()) {
-                    val table = cursor.getString(0)
-                    if (table in INFRASTRUCTURE) continue
-                    tables[table] = mapOf("columns" to dumpColumns(database(db), table))
-                }
+        db.useWriterConnection { connection ->
+            val names = mutableListOf<String>()
+            connection.usePrepared(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+            ) { prepared ->
+                while (prepared.step()) names += prepared.getText(0)
             }
+            names.filterNot { it in INFRASTRUCTURE }.forEach { table ->
+                tables[table] = mapOf("columns" to connection.columns(table))
+            }
+        }
         db.close()
-        mapOf("format" to SNAPSHOT_FORMAT, "tables" to tables)
+        return mapOf("format" to SNAPSHOT_FORMAT, "tables" to tables)
     }
 
-    private fun dumpColumns(database: SupportSQLiteDatabase, table: String): Map<String, Any?> {
+    private suspend fun Transactor.columns(table: String): Map<String, Any?> {
         val columns = sortedMapOf<String, Any?>()
-        database.query("PRAGMA table_info(`$table`)").use { cursor ->
-            while (cursor.moveToNext()) {
-                columns[cursor.getString(1)] = column(cursor)
+        usePrepared("PRAGMA table_info(`$table`)") { prepared ->
+            while (prepared.step()) {
+                columns[prepared.getText(1)] = mapOf(
+                    "type" to prepared.getText(2).uppercase(),
+                    "notnull" to (prepared.getInt(3) != 0),
+                    "pk" to (prepared.getInt(5) != 0),
+                    "default" to if (prepared.isNull(4)) null else prepared.getText(4),
+                )
             }
         }
         return columns
     }
-
-    private fun column(cursor: Cursor): Map<String, Any?> = mapOf(
-        "type" to cursor.getString(2).uppercase(),
-        "notnull" to (cursor.getInt(3) != 0),
-        "pk" to (cursor.getInt(5) != 0),
-        "default" to if (cursor.isNull(4)) null else cursor.getString(4),
-    )
-
-    private fun database(db: NeoChatDatabase): SupportSQLiteDatabase = db.openHelper.writableDatabase
 
     @Suppress("UNCHECKED_CAST")
     private fun entityTables(snapshot: Any?): Map<String, Any?> {

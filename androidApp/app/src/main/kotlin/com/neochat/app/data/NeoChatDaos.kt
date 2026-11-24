@@ -129,7 +129,7 @@ internal interface MessageDao {
     @Query("DELETE FROM message_fts WHERE message_id = :messageId AND part_index = :partIndex")
     suspend fun deleteSearchRow(messageId: String, partIndex: Long)
 
-    /** 量 FTS5 是否真的编进了这台设备的 SQLite（Robolectric 的 SQLite 没编，见 SchemaSnapshotTest）。 */
+    /** 量 FTS5 虚表是否建起来了：自带 SQLite 上恒有，宿主 JVM 单测的平台 SQLite 上没有。 */
     @SkipQueryVerification
     @Query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'message_fts'")
     suspend fun searchTableCount(): Int

@@ -8,5 +8,5 @@ internal object SchemaBaseline {
 
     const val VERSION: Int = 1
 
-    const val SPEC_SHA256: String = "f921e007733bf868104487f07578d8a4c0ff5bd13e517b0a2920838c92d3b2f9"
+    const val SPEC_SHA256: String = "48d55a23774bb1827a344cfbbaff4c844ad4e96426a890b07b4a4884e68136fc"
 }

@@ -1,6 +1,7 @@
 package com.neochat.app.data
 
 import android.content.Context
+import androidx.room.useWriterConnection
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -93,10 +94,10 @@ class MessageSearchTest {
         assertEquals(parts, rows)
     }
 
-    private fun countOf(sql: String): Int {
-        db.openHelper.writableDatabase.query(sql).use { cursor ->
-            assertTrue(cursor.moveToFirst())
-            return cursor.getInt(0)
+    private suspend fun countOf(sql: String): Int = db.useWriterConnection { connection ->
+        connection.usePrepared(sql) { prepared ->
+            assertTrue(prepared.step())
+            prepared.getInt(0)
         }
     }
 

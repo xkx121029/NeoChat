@@ -1,6 +1,7 @@
 package com.neochat.app.data
 
-import androidx.room.withTransaction
+import androidx.room.Transactor
+import androidx.room.useWriterConnection
 import com.neochat.protocol.UsageCounts
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineDispatcher
@@ -118,7 +119,7 @@ internal class RoomChatStore(
 
     override suspend fun beginTurn(conversationId: String, userText: String, model: String?): TurnRefs =
         withContext(writer) {
-            db.withTransaction {
+            writeTransaction {
                 val at = now()
                 val conversation = db.conversations().find(conversationId)
                 val parentId = conversation?.activeLeafMessageId
@@ -150,13 +151,13 @@ internal class RoomChatStore(
 
     override suspend fun beginRetry(conversationId: String, parentMessageId: String?, model: String?): TurnRefs =
         withContext(writer) {
-            db.withTransaction { insertAssistant(conversationId, parentMessageId, model, now()) }
+            writeTransaction { insertAssistant(conversationId, parentMessageId, model, now()) }
         }
 
     override fun appendText(textPartId: String, delta: String) {
         enqueue {
             val at = now()
-            db.withTransaction {
+            writeTransaction {
                 db.parts().append(textPartId, delta, at)
                 index.write(textPartId)
             }
@@ -203,12 +204,12 @@ internal class RoomChatStore(
     }
 
     override suspend fun softDeleteMessage(messageId: String): Int = withContext(writer) {
-        db.withTransaction {
-            val target = db.messages().find(messageId) ?: return@withTransaction 0
+        writeTransaction {
+            val target = db.messages().find(messageId) ?: return@writeTransaction 0
             val at = now()
             val rev = Uuid7.revision()
             val ids = db.messages().subtreeIds(messageId)
-            if (ids.isEmpty()) return@withTransaction 0
+            if (ids.isEmpty()) return@writeTransaction 0
             db.messages().softDelete(ids, at, rev)
             index.remove(ids)
             val leaf = db.conversations().find(target.conversationId)?.activeLeafMessageId
@@ -217,6 +218,16 @@ internal class RoomChatStore(
             ids.size
         }
     }
+
+    /**
+     * 写事务。自带 SQLite 走驱动路径后 `androidx.room.withTransaction`（SupportSQLite 入口）
+     * 不可用：它会去要 `openHelper`。这里拿写连接开 IMMEDIATE 事务，内部的 DAO 调用会被
+     * Room 认作同一协程的连接，从而加入同一个事务。
+     */
+    private suspend fun <T> writeTransaction(block: suspend () -> T): T =
+        db.useWriterConnection { connection ->
+            connection.withTransaction(Transactor.SQLiteTransactionType.IMMEDIATE) { block() }
+        }
 
     /** 写任务入队；`quiesce` 靠这些句柄等到真正提交完，而不是只等一个空任务。 */
     private fun enqueue(block: suspend () -> Unit) {

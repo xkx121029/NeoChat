@@ -1,15 +1,22 @@
 package com.neochat.app.data
 
 import android.content.Context
+import android.os.Build
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteStatement
+import androidx.sqlite.execSQL
 import com.neochat.app.R
 
 /**
  * 二十二张实体表 + DDL 里的 FTS5 虚表。虚表 Room 声明不了，由 [SchemaCallback] 原样执行
  * `res/raw/schema_fts5.sql`（与 `spec/schema/v1.sql` 的 `CREATE VIRTUAL TABLE` 段落等价）。
+ *
+ * 引擎是随 APK 分发的 SQLite（[BundledSqlite]，ADR-004），不是系统的那个：系统库有没有 FTS5
+ * 由 ROM 决定。换成驱动后 Room 的回调收到 [SQLiteConnection] 而不是 `SupportSQLiteDatabase`，
+ * `openHelper` 与 `androidx.room.withTransaction` 都不再可用，事务要按连接写（见 `RoomChatStore`）。
  */
 @Database(
     entities = [
@@ -71,64 +78,108 @@ internal abstract class NeoChatDatabase : RoomDatabase() {
             context,
         )
 
+        /**
+         * Robolectric 在宿主 JVM 上跑，自带 SQLite 的 .so 是给 Android ABI 编的，装不进来；
+         * 那里的单测退回平台 SQLite（没有 FTS5，`MessageIndex` 会探测到并跳过 FTS）。真机与模拟器
+         * 一律走自带引擎——这才是 ADR-004 要保证的东西。
+         */
+        private val hostedUnitTest: Boolean
+            get() = Build.FINGERPRINT.equals("robolectric", ignoreCase = true)
+
         private fun build(builder: RoomDatabase.Builder<NeoChatDatabase>, context: Context): NeoChatDatabase =
             builder
+                .apply { if (!hostedUnitTest) setDriver(BundledSqlite.driver) }
                 .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
-                .addCallback(SchemaCallback(context.applicationContext))
+                .addCallback(SchemaCallback(context.applicationContext, bundled = !hostedUnitTest))
                 .build()
     }
 }
 
 /**
- * 建库与每次开库的固定动作：建 FTS5 虚表、写初始行、按 DDL 头部要求设置 PRAGMA。
- * PRAGMA 用 `query` 执行——`execSQL` 会丢掉它们返回的结果行，个别 Android 版本因此不生效。
+ * 建库与开库的固定动作：建 FTS5 虚表、写初始行、按 DDL 头部要求设置 PRAGMA。
+ *
+ * 只实现收 [SQLiteConnection] 的那两个回调：驱动路径调它们，平台 SQLite 路径（宿主 JVM 单测）
+ * 也调它们——Room 把 `SupportSQLiteDatabase` 包成 `SupportSQLiteConnection` 传进来。
  */
-internal class SchemaCallback(private val context: Context) : RoomDatabase.Callback() {
+internal class SchemaCallback(
+    private val context: Context,
+    private val bundled: Boolean,
+) : RoomDatabase.Callback() {
 
-    private companion object {
-        const val MISSING_FTS5 = "no such module: fts5"
-    }
-
-    override fun onCreate(db: SupportSQLiteDatabase) {
-        createFullTextTable(db)
-        db.execSQL("INSERT OR REPLACE INTO schema_meta(key, value) VALUES ('schema_version', ?)", arrayOf<Any?>(SchemaBaseline.VERSION.toString()))
-        db.execSQL("INSERT OR REPLACE INTO schema_meta(key, value) VALUES ('created_at', ?)", arrayOf<Any?>(System.currentTimeMillis().toString()))
-        db.execSQL(
+    override fun onCreate(connection: SQLiteConnection) {
+        createFullTextTable(connection)
+        val at = System.currentTimeMillis()
+        connection.execute(
+            "INSERT OR REPLACE INTO schema_meta(key, value) VALUES ('schema_version', ?)",
+            SchemaBaseline.VERSION.toString(),
+        )
+        connection.execute(
+            "INSERT OR REPLACE INTO schema_meta(key, value) VALUES ('created_at', ?)",
+            at.toString(),
+        )
+        connection.execute(
             "INSERT OR REPLACE INTO app_setting(key, value_json, updated_at) VALUES ('ui.locale', '\"zh-CN\"', ?)",
-            arrayOf<Any?>(System.currentTimeMillis()),
+            at,
         )
-        db.execSQL(
+        connection.execute(
             "INSERT OR REPLACE INTO app_setting(key, value_json, updated_at) VALUES ('privacy.telemetry', 'false', ?)",
-            arrayOf<Any?>(System.currentTimeMillis()),
+            at,
         )
-        val integrity = db.query("PRAGMA integrity_check").use { cursor ->
-            if (cursor.moveToFirst()) cursor.getString(0) else "unknown"
-        }
-        db.execSQL(
-            "INSERT OR REPLACE INTO migration(name, checksum, applied_at, snapshot_path, integrity_ok) VALUES (?, ?, ?, NULL, ?)",
-            arrayOf<Any?>("v1.sql", SchemaBaseline.SPEC_SHA256, System.currentTimeMillis(), if (integrity == "ok") 1 else 0),
+        val integrity = connection.textOf("PRAGMA integrity_check")
+        connection.execute(
+            "INSERT OR REPLACE INTO migration(name, checksum, applied_at, snapshot_path, integrity_ok) " +
+                "VALUES (?, ?, ?, NULL, ?)",
+            "v1.sql",
+            SchemaBaseline.SPEC_SHA256,
+            at,
+            if (integrity == "ok") 1 else 0,
         )
     }
 
     /**
-     * FTS5 是设备侧能力，不是 API 级别的承诺：AOSP API 33 模拟器的 SQLite 3.32.2 就没有编 FTS5
-     * （`sqlite3` 直接报 `no such module: fts5`），Robolectric 也没有。
-     * 因此这里对"缺模块"只放行不崩，`MessageIndex` 探测不到虚表时整条 FTS 路径静默跳过。
+     * 每次开库都补一次虚表：`CREATE VIRTUAL TABLE IF NOT EXISTS` 是幂等的，而换引擎之前建出来的
+     * 老库（系统 SQLite 没有 FTS5）里是没有这张表的，只靠 onCreate 会一直缺下去。
      */
-    private fun createFullTextTable(db: SupportSQLiteDatabase) {
+    override fun onOpen(connection: SQLiteConnection) {
+        createFullTextTable(connection)
+        BundledSqlite.PRAGMAS.forEach { connection.execute(it) }
+    }
+
+    /**
+     * 自带引擎必带 FTS5：建不出来就是缺陷，直接抛。宿主 JVM 单测的平台 SQLite 没编 FTS5，
+     * 那条路径上放过"缺模块"，`MessageIndex` 会探测到并跳过 FTS。
+     */
+    private fun createFullTextTable(connection: SQLiteConnection) {
         val ddl = context.resources.openRawResource(R.raw.schema_fts5).bufferedReader().use { it.readText() }
         try {
-            db.execSQL(ddl.trim().removeSuffix(";"))
+            connection.execSQL(ddl.trim().removeSuffix(";"))
         } catch (failure: RuntimeException) {
-            if (failure.message?.contains(MISSING_FTS5) != true) throw failure
+            val missing = failure.message?.contains(MISSING_FTS5) == true
+            if (bundled || !missing) throw failure
         }
     }
 
-    override fun onOpen(db: SupportSQLiteDatabase) {
-        // 外键只能走 Android 的开关：`PRAGMA foreign_keys` 被框架静默丢弃，查询时会读回 0。
-        db.setForeignKeyConstraintsEnabled(true)
-        db.query("PRAGMA synchronous = NORMAL").close()
-        db.query("PRAGMA busy_timeout = 5000").close()
-        db.query("PRAGMA temp_store = MEMORY").close()
+    private companion object {
+        const val MISSING_FTS5 = "no such module: fts5"
     }
 }
+
+/** 按绑定值类型分派；SQLite 驱动不给 `execSQL` 的绑定重载，只有 [SQLiteStatement]。 */
+internal fun SQLiteConnection.execute(sql: String, vararg args: Any?) {
+    prepare(sql).use { statement ->
+        args.forEachIndexed { offset, value ->
+            val index = offset + 1
+            when (value) {
+                null -> statement.bindNull(index)
+                is Int -> statement.bindInt(index, value)
+                is Long -> statement.bindLong(index, value)
+                else -> statement.bindText(index, value.toString())
+            }
+        }
+        statement.step()
+    }
+}
+
+/** 读一行的第一列（如 `PRAGMA integrity_check`）；没有结果行时给 `unknown`。 */
+internal fun SQLiteConnection.textOf(sql: String): String =
+    prepare(sql).use { statement -> if (statement.step()) statement.getText(0) else "unknown" }

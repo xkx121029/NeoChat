@@ -68,6 +68,7 @@ dependencies {
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.sqlite.bundled)
     ksp(libs.room.compiler)
 
     testImplementation(libs.junit.jupiter)
